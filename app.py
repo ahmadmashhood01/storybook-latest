@@ -7,10 +7,16 @@ from pathlib import Path
 from PIL import Image
 import io
 import tempfile
-from config import TEMPLATE_IMAGES_DIR, TOTAL_PAGES, BOOKS_BASE_DIR
+from config import TEMPLATE_IMAGES_DIR, TOTAL_PAGES, BOOKS_BASE_DIR, OPENAI_API_KEY
 from openai_client_new import generate_pages_for_book, process_cover_with_new_workflow, generate_canonical_reference
 from generate_pdf import create_pdf
 from book_utils import BOOK_PATHS, get_book_template_path
+
+# Debug: Check API key on app load (only show in sidebar for debugging)
+if OPENAI_API_KEY:
+    st.sidebar.success(f"✅ API Key loaded ({'Streamlit Secret' if hasattr(st, 'secrets') and hasattr(st.secrets, 'get') and st.secrets.get('OPENAI_API_KEY') else 'Config file'})")
+else:
+    st.sidebar.error("❌ API Key not found! Please configure it in Streamlit Cloud secrets.")
 
 # Page configuration
 st.set_page_config(
