@@ -16,12 +16,25 @@ from config import OPENAI_API_KEY
 import re
 import io
 
-# Initialize OpenAI client with API key validation
-if not OPENAI_API_KEY or OPENAI_API_KEY == "":
-    raise ValueError("OpenAI API key is not configured! Please set OPENAI_API_KEY in Streamlit secrets or environment variable.")
+# Initialize OpenAI client lazily to ensure API key is available
+_client = None
 
-client = OpenAI(api_key=OPENAI_API_KEY)
-log(f"OpenAI client initialized with API key: {OPENAI_API_KEY[:10]}...{OPENAI_API_KEY[-4:] if len(OPENAI_API_KEY) > 14 else '***'}")
+def get_client():
+    """Get or create OpenAI client instance"""
+    global _client
+    if _client is None:
+        if not OPENAI_API_KEY or OPENAI_API_KEY == "":
+            raise ValueError("OpenAI API key is not configured! Please set OPENAI_API_KEY in Streamlit secrets or environment variable.")
+        _client = OpenAI(api_key=OPENAI_API_KEY)
+        log(f"OpenAI client initialized with API key: {OPENAI_API_KEY[:10]}...{OPENAI_API_KEY[-4:] if len(OPENAI_API_KEY) > 14 else '***'}")
+    return _client
+
+# For backward compatibility, create client at module level
+try:
+    client = get_client()
+except Exception as e:
+    log(f"Warning: Could not initialize OpenAI client at module level: {e}")
+    client = None
 
 # Simple file logger
 def log(message):
@@ -696,7 +709,7 @@ def detect_template_expression(template_bytes: bytes) -> dict:
             "Be precise - this will be used to recreate the EXACT same expression. Do NOT exaggerate or minimize what you see."
         )
         
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -841,7 +854,7 @@ def analyze_child_features(child_image_bytes: bytes) -> dict:
             "This description will be used to ensure the child is recognizable in illustrations."
         )
         
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -968,7 +981,7 @@ def detect_face_in_child_photo(child_image_bytes: bytes) -> Optional[Tuple[int, 
             "Return ONLY the bounding box as: BOUNDING_BOX: (x1, y1, x2, y2)"
         )
         
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -1125,7 +1138,7 @@ def create_face_mask_with_gpt_detection(template_bytes: bytes) -> bytes:
         "Return as: BOUNDING_BOX: (x1, y1, x2, y2)"
     )
     try:
-        resp = client.chat.completions.create(
+        resp = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -1407,7 +1420,7 @@ def has_child_character(template_image_bytes: bytes) -> bool:
             "Answer with ONLY 'YES' or 'NO' - nothing else."
         )
         
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -1559,7 +1572,7 @@ def generate_canonical_reference(
     
     try:
         with open(child_path, 'rb') as child_file:
-            response = client.images.edit(
+            response = get_client().images.edit(
                 model="gpt-image-1",
                 image=child_file,
                 prompt=canonical_prompt,
@@ -1669,7 +1682,7 @@ def detect_character_view(template_image_bytes: bytes) -> dict:
             "DESCRIPTION: [Brief description of character pose and what's visible]"
         )
         
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
@@ -2439,7 +2452,7 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             with open(template_path, 'rb') as template_file, open(identity_path, 'rb') as identity_file:
                 
                 # Optimized API call with maximum fidelity for identity preservation
-                response = client.images.edit(
+                response = get_client().images.edit(
                     model="gpt-image-1",
                     image=[template_file, identity_file],  # Template + canonical reference for consistent identity
                     prompt=chatgpt_prompt,
@@ -2499,7 +2512,7 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
                     with open(template_path, 'rb') as template_file, \
                          open(mask_path_fixed, 'rb') as mask_file:
                         
-                        response = client.images.edit(
+                        response = get_client().images.edit(
                             model="gpt-image-1",
                             image=template_file,
                             mask=mask_file,
@@ -2550,7 +2563,7 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
                 
                 # Ask GPT-4o to describe exactly what needs to happen
                 # Use careful wording to avoid content policy issues
-                analysis_response = client.chat.completions.create(
+                analysis_response = get_client().chat.completions.create(
                     model="gpt-4o",
                     messages=[
                         {
@@ -2594,7 +2607,7 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
                 
                 # Use DALL-E 3 with the detailed prompt
                 log("Generating image with DALL-E 3...")
-                dalle_response = client.images.generate(
+                dalle_response = get_client().images.generate(
                     model="dall-e-3",
                     prompt=detailed_prompt,
                     size=target_size,  # allowed size choice
@@ -2683,7 +2696,7 @@ def check_page_consistency(
             "REASON: [Brief explanation if NO]"
         )
         
-        response = client.chat.completions.create(
+        response = get_client().chat.completions.create(
             model="gpt-4o",
             messages=[
                 {
