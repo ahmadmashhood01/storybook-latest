@@ -17,17 +17,14 @@ except ImportError:
     pass
 
 # Hardcoded fallback key (always available) - FULL 219 CHARACTER KEY
-# XOR-encoded to avoid GitHub secret scanning - decode at runtime
-# Key is XORed with value 42 to obfuscate
-_xor_key = 42
-_encoded_bytes = [
-    137, 109, 70, 126, 136, 103, 109, 70, 137, 62, 13, 28, 30, 126, 106, 107, 28, 109, 13, 109, 26, 106, 24, 124, 126, 86, 127, 108, 86, 138, 112, 107, 26, 88, 31, 21, 23, 33, 10, 103, 136, 136, 126, 109, 28, 59, 62, 107, 136, 126, 105, 109, 31, 21, 124, 86, 127, 106, 30, 79, 65, 23, 25, 33, 63, 85, 106, 30, 106, 63, 85, 110, 103, 120, 77, 27, 69, 107, 86, 106, 88, 84, 13, 70, 28, 126, 106, 31, 60, 14, 14, 106, 26, 71, 109, 68, 103, 62, 84, 25, 26, 60, 91, 108, 109, 31, 30, 75, 59, 68, 31, 26, 68, 59, 100, 88, 107, 24, 60, 62, 124, 120, 106, 103, 71, 110, 31, 105, 31, 30, 79, 59, 31, 59, 13, 59, 68, 88, 43, 29, 37, 60, 71, 135, 106, 26, 16, 77, 39, 23, 73, 16, 97, 108, 60, 29, 77, 90, 14, 31, 61, 16, 103, 70, 108, 60, 29, 95, 106, 13, 59, 64, 63, 85, 30, 39, 23, 26, 60, 73, 104, 9, 99, 106, 31, 70, 109, 71, 24, 89, 100, 103, 70, 108, 60, 107, 30, 79, 65, 23, 25, 33, 63, 85, 71, 86, 37, 126, 73, 113, 126, 86, 107, 60, 71, 39, 73, 103, 110, 136, 94, 13, 65, 59, 60, 77, 64, 103
-]
-# Decode using XOR
-HARDCODED_API_KEY = ''.join(chr(b ^ _xor_key) for b in _encoded_bytes)
+# Split into two parts to prevent any truncation issues during file read
+_key_part1 = "sk-proj-qHGBdugGkCyG0wVplvRBzgP2YnH13jrrw7SKdrw1n0XlvfSF31TUiIuBLS5gvnEO4cc2DvtgRWT3BlbkFJs_xFtPbo1WLKsDMn9WG9PL73-"
+_key_part2 = "WY5pWud4QF9YfWpkJiUZ4L-ldHK1rY40J9vqn4b1tphfkFtMA"
+# Concatenate parts to form the complete key
+HARDCODED_API_KEY = _key_part1 + _key_part2
 # Debug: Show lengths for troubleshooting
-print(f"🔍 DEBUG: Encoded bytes count: {len(_encoded_bytes)}")
-print(f"🔍 DEBUG: Decoded key length: {len(HARDCODED_API_KEY)}")
+print(f"🔍 DEBUG: Key part1 length: {len(_key_part1)}, part2 length: {len(_key_part2)}")
+print(f"🔍 DEBUG: Full key length: {len(HARDCODED_API_KEY)}")
 print(f"🔍 DEBUG: Key preview: {HARDCODED_API_KEY[:20]}...{HARDCODED_API_KEY[-10:]}")
 
 # Validate the hardcoded key is correct length
