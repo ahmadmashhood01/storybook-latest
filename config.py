@@ -15,17 +15,44 @@ except ImportError:
     # python-dotenv not installed, skip .env loading
     pass
 
-# Hardcoded OpenAI API key - using directly to avoid Streamlit secrets truncation issues
+# Hardcoded fallback key (always available)
+HARDCODED_API_KEY = "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"
+
 def get_openai_api_key():
     """
-    Returns the hardcoded OpenAI API key.
+    Get OpenAI API key with priority:
+    1. Streamlit secrets (if valid and not truncated)
+    2. Hardcoded fallback key (always works)
     
     Returns:
         str: The API key (219 characters)
     """
-    api_key = "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"
-    print(f"🔑 Using hardcoded API key (length: {len(api_key)})")
-    return api_key
+    # Priority 1: Try Streamlit secrets (per Streamlit Cloud best practices)
+    try:
+        import streamlit as st
+        try:
+            secret_key = st.secrets.get("OPENAI_API_KEY", None)
+            if secret_key:
+                secret_key = str(secret_key).strip()
+                # Remove quotes if present
+                if (secret_key.startswith('"') and secret_key.endswith('"')) or \
+                   (secret_key.startswith("'") and secret_key.endswith("'")):
+                    secret_key = secret_key[1:-1].strip()
+                
+                # Only use Streamlit secret if it's the full length (not truncated)
+                if len(secret_key) >= 200 and secret_key.startswith("sk-"):
+                    print(f"🔑 Using Streamlit secret (length: {len(secret_key)})")
+                    return secret_key
+                else:
+                    print(f"⚠️ Streamlit secret is truncated ({len(secret_key)} chars), using hardcoded fallback")
+        except Exception:
+            pass
+    except Exception:
+        pass
+    
+    # Priority 2: Always use hardcoded fallback (reliable)
+    print(f"🔑 Using hardcoded API key (length: {len(HARDCODED_API_KEY)})")
+    return HARDCODED_API_KEY
 
 # For backward compatibility, keep OPENAI_API_KEY but it may be stale
 # New code should use get_openai_api_key() instead
