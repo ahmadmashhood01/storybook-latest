@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: storybook-webhook
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker api:app --bind 0.0.0.0:10000 --timeout 600
+    healthCheckPath: /healthz
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SHOPIFY_WEBHOOK_SECRET
+        sync: false
+      - key: GELATO_API_KEY
+        sync: false
+      - key: GELATO_PRODUCT_UID
+        value: photobook_hc_8x11_24
+      - key: RENDER_EXTERNAL_URL
+        fromService:
+          type: web
+          name: storybook-webhook
+          property: host
+      - key: BOOKS_BASE_DIR
+        value: /data/books
+      - key: OUTPUT_DIR
+        value: /data/output
+      - key: LOG_LEVEL
+        value: INFO
+    disk:
+      name: storybook-data
+      mountPath: /data
+      sizeGB: 10
