@@ -15,7 +15,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 #   - 0.png: Back cover only (unchanged)
 #   - 1.png: Full wrap cover (front + spine + back) - used for spine extraction
 #   - 2.png - 33.png: Interior pages
-BOOKS_BASE_DIR = os.getenv("BOOKS_BASE_DIR", r"C:\Users\sceer\Downloads\Books")
+
+# Default to Books folder in repository (relative to this config file)
+# Can be overridden with BOOKS_BASE_DIR environment variable
+_default_books_dir = os.path.join(os.path.dirname(__file__), "Books")
+BOOKS_BASE_DIR = os.getenv("BOOKS_BASE_DIR", _default_books_dir)
 
 # Legacy path for backward compatibility
 TEMPLATE_IMAGES_DIR = os.path.join(
