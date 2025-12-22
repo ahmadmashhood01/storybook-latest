@@ -44,6 +44,18 @@ def get_openai_api_key():
                 
                 # Validate key format
                 if api_key and len(api_key) >= 20 and api_key.startswith("sk-"):
+                    # Check for truncation - OpenAI API keys are typically 200+ characters
+                    # The expected key should be ~219 characters
+                    if len(api_key) < 200:
+                        print(f"⚠️ CRITICAL WARNING: API key appears to be TRUNCATED!")
+                        print(f"   Current length: {len(api_key)} characters")
+                        print(f"   Expected length: ~219 characters")
+                        print(f"   Key preview: {api_key[:20]}...{api_key[-10:]}")
+                        print(f"   ❌ The key in Streamlit secrets is incomplete!")
+                        print(f"   📝 Please copy the FULL key (all 219 characters) to Streamlit secrets")
+                        print(f"   🔗 Get your key from: https://platform.openai.com/account/api-keys")
+                        # Still return it, but it will fail with 401 - this helps user see the error
+                    
                     # Log key info for debugging (first 10 and last 4 chars only)
                     print(f"🔑 Retrieved API key from Streamlit Secret (length: {len(api_key)})")
                     return api_key

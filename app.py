@@ -33,7 +33,13 @@ try:
             if os.getenv("OPENAI_API_KEY") == current_api_key:
                 key_source = "Environment Variable"
         
-        st.sidebar.success(f"✅ API Key loaded ({key_source})")
+        # Check if key is truncated (should be ~219 characters)
+        if len(current_api_key) < 200:
+            st.sidebar.error(f"❌ API Key is TRUNCATED! ({len(current_api_key)} chars, need ~219)")
+            st.sidebar.warning("📝 Copy the FULL key to Streamlit secrets (all 219 characters)")
+            st.sidebar.info("🔗 Get your key: https://platform.openai.com/account/api-keys")
+        else:
+            st.sidebar.success(f"✅ API Key loaded ({key_source}, {len(current_api_key)} chars)")
     else:
         st.sidebar.error("❌ API Key not found! Please configure it in Streamlit Cloud secrets.")
 except Exception as e:

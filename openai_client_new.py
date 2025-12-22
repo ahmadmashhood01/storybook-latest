@@ -63,11 +63,17 @@ def get_client():
             raise ValueError("API key appears to have been modified (whitespace issues)")
         
         # Additional validation - check key length matches expected format
-        # OpenAI API keys are typically 51 characters for sk-proj- keys
-        expected_min_length = 50
+        # OpenAI API keys for sk-proj- are typically 200+ characters (this one should be 219)
+        expected_min_length = 200
         if len(api_key_to_use) < expected_min_length:
-            log(f"⚠️ WARNING: API key length is {len(api_key_to_use)} characters, expected at least {expected_min_length}")
+            log(f"❌ CRITICAL ERROR: API key is TRUNCATED!")
+            log(f"   Current length: {len(api_key_to_use)} characters")
+            log(f"   Expected length: ~219 characters")
             log(f"   Key preview: {api_key_to_use[:20]}...{api_key_to_use[-10:]}")
+            log(f"   📝 SOLUTION: Copy the FULL API key (all 219 characters) to Streamlit secrets")
+            log(f"   🔗 Get your key from: https://platform.openai.com/account/api-keys")
+            log(f"   ⚠️  The key will be rejected by OpenAI API (401 error) until it's complete")
+            # Don't raise here - let it fail with 401 so user sees the error message
         
         # Log full key details for debugging (first 15 and last 10 chars only)
         key_preview = f"{api_key_to_use[:15]}...{api_key_to_use[-10:]}" if len(api_key_to_use) > 25 else api_key_to_use
