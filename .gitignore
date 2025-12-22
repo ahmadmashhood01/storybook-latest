@@ -41,6 +41,8 @@ env/
 # Output files
 output/
 *.pdf
+# Allow PDFs in Books folder (tracked via Git LFS)
+!Books/**/*.pdf
 
 # OS files
 .DS_Store
