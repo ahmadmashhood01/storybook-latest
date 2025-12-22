@@ -31,10 +31,22 @@ def get_openai_api_key():
     try:
         import streamlit as st
         try:
-            api_key = st.secrets.get("OPENAI_API_KEY", None)
-            if api_key:
+            api_key_raw = st.secrets.get("OPENAI_API_KEY", None)
+            if api_key_raw:
+                # Debug: print raw key info
+                print(f"🔍 DEBUG: Raw key type: {type(api_key_raw)}")
+                print(f"🔍 DEBUG: Raw key repr: {repr(api_key_raw)[:100]}...")
+                print(f"🔍 DEBUG: Raw key length: {len(str(api_key_raw))}")
+                
                 # Convert to string and strip whitespace
-                api_key = str(api_key).strip()
+                api_key = str(api_key_raw).strip()
+                
+                # Check for newlines in the key (common issue with copy-paste)
+                if '\n' in api_key or '\r' in api_key:
+                    print(f"⚠️ WARNING: Key contains newlines! Removing them...")
+                    api_key = api_key.replace('\n', '').replace('\r', '')
+                    print(f"🔍 DEBUG: After newline removal: {len(api_key)} chars")
+                
                 # Remove any quotes that might have been added
                 if api_key.startswith('"') and api_key.endswith('"'):
                     api_key = api_key[1:-1]
@@ -50,15 +62,19 @@ def get_openai_api_key():
                         print(f"⚠️ CRITICAL WARNING: API key appears to be TRUNCATED!")
                         print(f"   Current length: {len(api_key)} characters")
                         print(f"   Expected length: ~219 characters")
-                        print(f"   Key preview: {api_key[:20]}...{api_key[-10:]}")
+                        print(f"   Key preview: {api_key[:30]}...{api_key[-15:]}")
                         print(f"   ❌ The key in Streamlit secrets is incomplete!")
-                        print(f"   📝 Please copy the FULL key (all 219 characters) to Streamlit secrets")
-                        print(f"   🔗 Get your key from: https://platform.openai.com/account/api-keys")
-                        # Still return it, but it will fail with 401 - this helps user see the error
-                    
-                    # Log key info for debugging (first 10 and last 4 chars only)
-                    print(f"🔑 Retrieved API key from Streamlit Secret (length: {len(api_key)})")
-                    return api_key
+                        print(f"   📝 WORKAROUND: Falling back to hardcoded key in config.py")
+                        # Check if the issue is newlines were stripped
+                        raw_len = len(str(api_key_raw)) if api_key_raw else 0
+                        if raw_len > len(api_key):
+                            print(f"   🔍 Raw length was {raw_len}, processed is {len(api_key)} - newlines were removed")
+                        # DON'T return the truncated key - fall through to fallback
+                        print(f"   ⏭️ Skipping truncated Streamlit secret, using fallback key...")
+                    else:
+                        # Key is good length, use it
+                        print(f"🔑 Retrieved API key from Streamlit Secret (length: {len(api_key)})")
+                        return api_key
                 else:
                     print(f"⚠️ WARNING: Streamlit secret key format invalid (length: {len(api_key) if api_key else 0}, starts with: {api_key[:5] if api_key else 'None'})")
         except Exception as e:
@@ -76,8 +92,9 @@ def get_openai_api_key():
         if api_key and len(api_key) > 20 and api_key.startswith("sk-"):
             return api_key
     
-    # Priority 3: Default fallback key (for local testing)
+    # Priority 3: Default fallback key (for local testing AND Streamlit Cloud if secrets are truncated)
     fallback_key = "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"
+    print(f"🔑 Using fallback key from config.py (length: {len(fallback_key)})")
     # Validate fallback key too
     if fallback_key and len(fallback_key) > 20 and fallback_key.startswith("sk-"):
         return fallback_key

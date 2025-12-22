@@ -17,29 +17,38 @@ try:
     current_api_key = get_openai_api_key()
     if current_api_key:
         # Determine key source
-        key_source = "Config/Default"
+        key_source = "Hardcoded Fallback"
+        streamlit_key_truncated = False
         try:
             if hasattr(st, 'secrets'):
                 try:
-                    if st.secrets.get("OPENAI_API_KEY", None) == current_api_key:
-                        key_source = "Streamlit Secret"
+                    st_key = st.secrets.get("OPENAI_API_KEY", None)
+                    if st_key:
+                        st_key_clean = str(st_key).strip().replace('\n', '').replace('\r', '')
+                        if st_key_clean == current_api_key:
+                            key_source = "Streamlit Secret"
+                        elif len(st_key_clean) < 200:
+                            streamlit_key_truncated = True
                 except Exception:
                     pass
         except Exception:
             pass
         
-        if key_source == "Config/Default":
+        if key_source == "Hardcoded Fallback":
             import os
             if os.getenv("OPENAI_API_KEY") == current_api_key:
                 key_source = "Environment Variable"
         
-        # Check if key is truncated (should be ~219 characters)
+        # Check if key is valid length
         if len(current_api_key) < 200:
             st.sidebar.error(f"❌ API Key is TRUNCATED! ({len(current_api_key)} chars, need ~219)")
             st.sidebar.warning("📝 Copy the FULL key to Streamlit secrets (all 219 characters)")
             st.sidebar.info("🔗 Get your key: https://platform.openai.com/account/api-keys")
         else:
-            st.sidebar.success(f"✅ API Key loaded ({key_source}, {len(current_api_key)} chars)")
+            if streamlit_key_truncated:
+                st.sidebar.warning(f"⚠️ Streamlit secret was truncated, using fallback key ({len(current_api_key)} chars)")
+            else:
+                st.sidebar.success(f"✅ API Key loaded ({key_source}, {len(current_api_key)} chars)")
     else:
         st.sidebar.error("❌ API Key not found! Please configure it in Streamlit Cloud secrets.")
 except Exception as e:
