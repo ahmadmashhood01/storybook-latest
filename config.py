@@ -3,9 +3,20 @@ Configuration file for the Princess Storybook Generator
 Copy this file to config.py and add your OpenAI API key
 """
 import os
+from pathlib import Path
+
+# Try to load .env file if it exists (for local development)
+try:
+    from dotenv import load_dotenv
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+except ImportError:
+    # python-dotenv not installed, skip .env loading
+    pass
 
 # OpenAI API Key - Get yours from https://platform.openai.com/api-keys
-# Set via environment variable OPENAI_API_KEY or replace the default below for local testing
+# Priority: 1) Environment variable OPENAI_API_KEY, 2) .env file, 3) Empty string
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Template image paths - Base directory for all book assets
