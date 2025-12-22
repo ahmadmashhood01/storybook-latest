@@ -15,9 +15,34 @@ except ImportError:
     # python-dotenv not installed, skip .env loading
     pass
 
+# Try to get Streamlit secrets (for Streamlit Cloud)
+try:
+    import streamlit as st
+    _streamlit_secrets = st.secrets
+except (ImportError, AttributeError, RuntimeError):
+    # Not running in Streamlit or secrets not available
+    _streamlit_secrets = None
+
 # OpenAI API Key - Get yours from https://platform.openai.com/api-keys
-# Priority: 1) Environment variable OPENAI_API_KEY, 2) .env file, 3) Default key below
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "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")
+# Priority: 1) Streamlit secrets, 2) Environment variable OPENAI_API_KEY, 3) .env file, 4) Default key below
+_api_key = None
+
+# Check Streamlit secrets first (for Streamlit Cloud)
+if _streamlit_secrets:
+    try:
+        _api_key = _streamlit_secrets.get("OPENAI_API_KEY", None)
+    except (AttributeError, KeyError):
+        pass
+
+# Fallback to environment variable
+if not _api_key:
+    _api_key = os.getenv("OPENAI_API_KEY", None)
+
+# Fallback to default key (for local testing)
+if not _api_key:
+    _api_key = "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"
+
+OPENAI_API_KEY = _api_key
 
 # Template image paths - Base directory for all book assets
 # Override with env var BOOKS_BASE_DIR when deploying (e.g., /data/books on Render)
