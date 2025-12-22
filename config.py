@@ -33,12 +33,25 @@ def get_openai_api_key():
         try:
             api_key = st.secrets.get("OPENAI_API_KEY", None)
             if api_key:
-                # Validate key is not empty and has proper format
+                # Convert to string and strip whitespace
                 api_key = str(api_key).strip()
-                if api_key and len(api_key) > 20 and api_key.startswith("sk-"):
+                # Remove any quotes that might have been added
+                if api_key.startswith('"') and api_key.endswith('"'):
+                    api_key = api_key[1:-1]
+                if api_key.startswith("'") and api_key.endswith("'"):
+                    api_key = api_key[1:-1]
+                api_key = api_key.strip()
+                
+                # Validate key format
+                if api_key and len(api_key) >= 20 and api_key.startswith("sk-"):
+                    # Log key info for debugging (first 10 and last 4 chars only)
+                    print(f"🔑 Retrieved API key from Streamlit Secret (length: {len(api_key)})")
                     return api_key
-        except Exception:
+                else:
+                    print(f"⚠️ WARNING: Streamlit secret key format invalid (length: {len(api_key) if api_key else 0}, starts with: {api_key[:5] if api_key else 'None'})")
+        except Exception as e:
             # Secrets file doesn't exist or key not found - continue to fallbacks
+            print(f"⚠️ Could not read Streamlit secret: {e}")
             pass
     except (ImportError, AttributeError, RuntimeError):
         # Not running in Streamlit or secrets not available

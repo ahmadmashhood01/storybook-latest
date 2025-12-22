@@ -59,19 +59,39 @@ def get_client():
         
         # Ensure we have the full key (no truncation)
         api_key_to_use = str(current_api_key).strip()
-        if len(api_key_to_use) != len(current_api_key):
+        if len(api_key_to_use) != len(str(current_api_key).strip()):
             raise ValueError("API key appears to have been modified (whitespace issues)")
         
-        _client = OpenAI(api_key=api_key_to_use)
-        _cached_api_key = api_key_to_use
+        # Additional validation - check key length matches expected format
+        # OpenAI API keys are typically 51 characters for sk-proj- keys
+        expected_min_length = 50
+        if len(api_key_to_use) < expected_min_length:
+            log(f"⚠️ WARNING: API key length is {len(api_key_to_use)} characters, expected at least {expected_min_length}")
+            log(f"   Key preview: {api_key_to_use[:20]}...{api_key_to_use[-10:]}")
+        
+        # Log full key details for debugging (first 15 and last 10 chars only)
+        key_preview = f"{api_key_to_use[:15]}...{api_key_to_use[-10:]}" if len(api_key_to_use) > 25 else api_key_to_use
+        log(f"🔑 Using API key (length: {len(api_key_to_use)}): {key_preview}")
+        
+        # Create client with validated key
+        try:
+            _client = OpenAI(api_key=api_key_to_use)
+            _cached_api_key = api_key_to_use
+        except Exception as e:
+            log(f"❌ ERROR creating OpenAI client: {e}")
+            log(f"   Key length: {len(api_key_to_use)}")
+            log(f"   Key starts with: {api_key_to_use[:10]}")
+            raise
         
         # Determine key source for logging
         key_source = "Unknown"
         try:
             import streamlit as st
             try:
-                if st.secrets.get("OPENAI_API_KEY", None) == current_api_key:
+                secret_key = st.secrets.get("OPENAI_API_KEY", None)
+                if secret_key and str(secret_key).strip() == api_key_to_use:
                     key_source = "Streamlit Secret"
+                    log(f"✅ Verified: Key matches Streamlit Secret")
             except Exception:
                 pass
         except Exception:
@@ -79,13 +99,14 @@ def get_client():
         
         if key_source == "Unknown":
             import os
-            if os.getenv("OPENAI_API_KEY") == current_api_key:
+            env_key = os.getenv("OPENAI_API_KEY")
+            if env_key and str(env_key).strip() == api_key_to_use:
                 key_source = "Environment Variable"
             else:
                 key_source = "Default/Config"
         
         log(f"✅ OpenAI client initialized with API key from: {key_source}")
-        log(f"   API Key: {current_api_key[:10]}...{current_api_key[-4:] if len(current_api_key) > 14 else '***'}")
+        log(f"   Key length: {len(api_key_to_use)} characters")
     
     return _client
 
