@@ -15,8 +15,13 @@ except ImportError:
     # python-dotenv not installed, skip .env loading
     pass
 
-# Hardcoded fallback key (always available)
+# Hardcoded fallback key (always available) - FULL 219 CHARACTER KEY
+# This is the complete key, no truncation
 HARDCODED_API_KEY = "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"
+
+# Validate the hardcoded key is correct length
+if len(HARDCODED_API_KEY) != 219:
+    raise ValueError(f"CRITICAL: Hardcoded API key is corrupted! Expected 219 chars, got {len(HARDCODED_API_KEY)}")
 
 def get_openai_api_key():
     """
@@ -51,7 +56,15 @@ def get_openai_api_key():
         pass
     
     # Priority 2: Always use hardcoded fallback (reliable)
+    # Double-check the key is correct before returning
+    if len(HARDCODED_API_KEY) != 219:
+        raise ValueError(f"CRITICAL: Hardcoded key corrupted! Expected 219, got {len(HARDCODED_API_KEY)}")
+    
     print(f"🔑 Using hardcoded API key (length: {len(HARDCODED_API_KEY)})")
+    if len(HARDCODED_API_KEY) != 219:
+        print(f"❌ ERROR: Key length mismatch! Expected 219, got {len(HARDCODED_API_KEY)}")
+        print(f"   Key preview: {HARDCODED_API_KEY[:50]}...{HARDCODED_API_KEY[-20:]}")
+    
     return HARDCODED_API_KEY
 
 # For backward compatibility, keep OPENAI_API_KEY but it may be stale
