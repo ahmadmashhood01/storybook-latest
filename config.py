@@ -16,20 +16,16 @@ except ImportError:
     # python-dotenv not installed, skip .env loading
     pass
 
-# Hardcoded fallback key (always available) - FULL 219 CHARACTER KEY
+# Hardcoded fallback key (always available)
 # Split into two parts to prevent any truncation issues during file read
 _key_part1 = "sk-proj-qHGBdugGkCyG0wVplvRBzgP2YnH13jrrw7SKdrw1n0XlvfSF31TUiIuBLS5gvnEO4cc2DvtgRWT3BlbkFJs_xFtPbo1WLKsDMn9WG9PL73-"
 _key_part2 = "WY5pWud4QF9YfWpkJiUZ4L-ldHK1rY40J9vqn4b1tphfkFtMA"
 # Concatenate parts to form the complete key
 HARDCODED_API_KEY = _key_part1 + _key_part2
-# Debug: Show lengths for troubleshooting
-print(f"🔍 DEBUG: Key part1 length: {len(_key_part1)}, part2 length: {len(_key_part2)}")
-print(f"🔍 DEBUG: Full key length: {len(HARDCODED_API_KEY)}")
-print(f"🔍 DEBUG: Key preview: {HARDCODED_API_KEY[:20]}...{HARDCODED_API_KEY[-10:]}")
 
-# Validate the hardcoded key is correct length
-if len(HARDCODED_API_KEY) != 219:
-    raise ValueError(f"CRITICAL: Hardcoded API key is corrupted! Expected 219 chars, got {len(HARDCODED_API_KEY)}")
+# Validate the hardcoded key has proper format (flexible length, must start with sk-)
+if len(HARDCODED_API_KEY) < 50 or not HARDCODED_API_KEY.startswith("sk-"):
+    raise ValueError(f"CRITICAL: Hardcoded API key is invalid! Must start with 'sk-' and be at least 50 chars. Got {len(HARDCODED_API_KEY)} chars, starts with: {HARDCODED_API_KEY[:10]}...")
 
 def get_openai_api_key():
     """
@@ -38,7 +34,7 @@ def get_openai_api_key():
     2. Hardcoded fallback key (always works)
     
     Returns:
-        str: The API key (219 characters)
+        str: The API key (starts with 'sk-', 50+ characters)
     """
     # Priority 1: Try Streamlit secrets (per Streamlit Cloud best practices)
     try:
@@ -76,14 +72,11 @@ def get_openai_api_key():
         pass
     
     # Priority 2: Always use hardcoded fallback (reliable)
-    # Double-check the key is correct before returning
-    if len(HARDCODED_API_KEY) != 219:
-        raise ValueError(f"CRITICAL: Hardcoded key corrupted! Expected 219, got {len(HARDCODED_API_KEY)}")
+    # Double-check the key has valid format before returning
+    if len(HARDCODED_API_KEY) < 50 or not HARDCODED_API_KEY.startswith("sk-"):
+        raise ValueError(f"CRITICAL: Hardcoded key invalid! Must start with 'sk-' and be 50+ chars. Got {len(HARDCODED_API_KEY)} chars")
     
     print(f"🔑 Using hardcoded API key (length: {len(HARDCODED_API_KEY)})")
-    if len(HARDCODED_API_KEY) != 219:
-        print(f"❌ ERROR: Key length mismatch! Expected 219, got {len(HARDCODED_API_KEY)}")
-        print(f"   Key preview: {HARDCODED_API_KEY[:50]}...{HARDCODED_API_KEY[-20:]}")
     
     return HARDCODED_API_KEY
 
