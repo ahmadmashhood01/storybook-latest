@@ -49,8 +49,21 @@ def get_client():
         if not current_api_key or current_api_key == "":
             raise ValueError("OpenAI API key is not configured! Please set OPENAI_API_KEY in Streamlit secrets or environment variable.")
         
-        _client = OpenAI(api_key=current_api_key)
-        _cached_api_key = current_api_key
+        # Validate API key format before using
+        if not isinstance(current_api_key, str):
+            raise ValueError(f"API key must be a string, got {type(current_api_key)}")
+        if len(current_api_key) < 20:
+            raise ValueError(f"API key appears to be truncated (length: {len(current_api_key)}). Expected at least 20 characters.")
+        if not current_api_key.startswith("sk-"):
+            raise ValueError(f"API key format invalid. Should start with 'sk-', got: {current_api_key[:10]}...")
+        
+        # Ensure we have the full key (no truncation)
+        api_key_to_use = str(current_api_key).strip()
+        if len(api_key_to_use) != len(current_api_key):
+            raise ValueError("API key appears to have been modified (whitespace issues)")
+        
+        _client = OpenAI(api_key=api_key_to_use)
+        _cached_api_key = api_key_to_use
         
         # Determine key source for logging
         key_source = "Unknown"
@@ -77,11 +90,20 @@ def get_client():
     return _client
 
 # For backward compatibility, create client at module level
-try:
-    client = get_client()
-except Exception as e:
-    log(f"Warning: Could not initialize OpenAI client at module level: {e}")
-    client = None
+# Note: This is lazy - client will be None until first use, which is fine
+# This prevents import-time errors if Streamlit secrets aren't available yet
+client = None
+
+def _ensure_client():
+    """Ensure client is initialized - called lazily when needed"""
+    global client
+    if client is None:
+        try:
+            client = get_client()
+        except Exception as e:
+            log(f"Warning: Could not initialize OpenAI client: {e}")
+            # Don't raise - let get_client() handle it when actually called
+    return client
 
 
 def _extract_bbox_from_analysis(analysis: str):

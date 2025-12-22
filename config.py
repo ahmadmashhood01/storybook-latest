@@ -25,7 +25,7 @@ def get_openai_api_key():
     3. Default fallback key (for local testing)
     
     Returns:
-        str: The API key
+        str: The API key (validated to ensure it's not truncated)
     """
     # Priority 1: Try Streamlit secrets (for Streamlit Cloud)
     try:
@@ -33,7 +33,10 @@ def get_openai_api_key():
         try:
             api_key = st.secrets.get("OPENAI_API_KEY", None)
             if api_key:
-                return api_key
+                # Validate key is not empty and has proper format
+                api_key = str(api_key).strip()
+                if api_key and len(api_key) > 20 and api_key.startswith("sk-"):
+                    return api_key
         except Exception:
             # Secrets file doesn't exist or key not found - continue to fallbacks
             pass
@@ -44,10 +47,18 @@ def get_openai_api_key():
     # Priority 2: Environment variable
     api_key = os.getenv("OPENAI_API_KEY", None)
     if api_key:
-        return api_key
+        api_key = str(api_key).strip()
+        if api_key and len(api_key) > 20 and api_key.startswith("sk-"):
+            return api_key
     
     # Priority 3: Default fallback key (for local testing)
-    return "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"
+    fallback_key = "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"
+    # Validate fallback key too
+    if fallback_key and len(fallback_key) > 20 and fallback_key.startswith("sk-"):
+        return fallback_key
+    
+    # If we get here, something is wrong
+    raise ValueError("No valid OpenAI API key found. Please configure OPENAI_API_KEY in Streamlit secrets or environment variable.")
 
 # For backward compatibility, keep OPENAI_API_KEY but it may be stale
 # New code should use get_openai_api_key() instead
