@@ -12,37 +12,51 @@ from openai_client_new import generate_pages_for_book, process_cover_with_new_wo
 from generate_pdf import create_pdf
 from book_utils import BOOK_PATHS, get_book_template_path
 
-# Debug: Check API key on app load (dynamically check Streamlit secrets)
+# Debug: Check API key on app load (dynamically check all sources)
 try:
     current_api_key = get_openai_api_key()
     if current_api_key:
-        # Determine key source
+        # Determine key source (priority order: session state > secrets > env > hardcoded)
         key_source = "Hardcoded Fallback"
         streamlit_key_truncated = False
-        try:
-            if hasattr(st, 'secrets'):
-                try:
-                    st_key = st.secrets.get("OPENAI_API_KEY", None)
-                    if st_key:
-                        st_key_clean = str(st_key).strip().replace('\n', '').replace('\r', '')
-                        if st_key_clean == current_api_key:
-                            key_source = "Streamlit Secret"
-                        elif len(st_key_clean) < 200:
-                            streamlit_key_truncated = True
-                except Exception:
-                    pass
-        except Exception:
-            pass
         
-        if key_source == "Hardcoded Fallback":
-            import os
-            if os.getenv("OPENAI_API_KEY") == current_api_key:
-                key_source = "Environment Variable"
+        # Check session state first
+        session_key = st.session_state.get("openai_api_key", None)
+        if session_key and str(session_key).strip() == current_api_key:
+            key_source = "User Input (Session State)"
+        else:
+            # Check Streamlit secrets
+            try:
+                if hasattr(st, 'secrets'):
+                    try:
+                        st_key = st.secrets.get("OPENAI_API_KEY", None)
+                        if st_key:
+                            st_key_clean = str(st_key).strip().replace('\n', '').replace('\r', '')
+                            if st_key_clean == current_api_key:
+                                key_source = "Streamlit Secret"
+                            elif len(st_key_clean) < 200:
+                                streamlit_key_truncated = True
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            
+            # Check environment variable
+            if key_source == "Hardcoded Fallback":
+                import os
+                env_key = os.getenv("OPENAI_API_KEY")
+                if env_key and env_key == current_api_key:
+                    key_source = "Environment Variable"
         
-        # Check if key is valid length
-        if len(current_api_key) < 200:
-            st.sidebar.error(f"❌ API Key is TRUNCATED! ({len(current_api_key)} chars, need ~219)")
-            st.sidebar.warning("📝 Copy the FULL key to Streamlit secrets (all 219 characters)")
+        # Show status (don't show error for short keys if from user input - they may be valid)
+        if key_source == "User Input (Session State)":
+            if len(current_api_key) >= 50 and current_api_key.startswith("sk-"):
+                st.sidebar.success(f"✅ API Key loaded from user input ({len(current_api_key)} chars)")
+            else:
+                st.sidebar.warning(f"⚠️ API Key format may be invalid ({len(current_api_key)} chars)")
+        elif len(current_api_key) < 200 and key_source != "User Input (Session State)":
+            st.sidebar.error(f"❌ API Key is TRUNCATED! ({len(current_api_key)} chars)")
+            st.sidebar.warning("📝 Enter your API key in the input field above, or configure it in Streamlit Cloud secrets")
             st.sidebar.info("🔗 Get your key: https://platform.openai.com/account/api-keys")
         else:
             if streamlit_key_truncated:
@@ -50,7 +64,7 @@ try:
             else:
                 st.sidebar.success(f"✅ API Key loaded ({key_source}, {len(current_api_key)} chars)")
     else:
-        st.sidebar.error("❌ API Key not found! Please configure it in Streamlit Cloud secrets.")
+        st.sidebar.error("❌ API Key not found! Please enter it in the input field above.")
 except Exception as e:
     st.sidebar.warning(f"⚠️ Could not verify API key: {e}")
 
@@ -77,6 +91,35 @@ if 'identity_info' not in st.session_state:
 # Sidebar for inputs
 with st.sidebar:
     st.header("📝 Input")
+    
+    # API Key input (highest priority - user can enter their own key)
+    api_key_input = st.text_input(
+        "🔑 OpenAI API Key",
+        value=st.session_state.get("openai_api_key", ""),
+        type="password",
+        help="Enter your OpenAI API key. This will be used for all API calls. Get your key from https://platform.openai.com/account/api-keys",
+        placeholder="sk-proj-..."
+    )
+    
+    # Store in session state if provided
+    if api_key_input:
+        api_key_clean = api_key_input.strip()
+        # Validate format
+        if api_key_clean and len(api_key_clean) >= 50 and api_key_clean.startswith("sk-"):
+            st.session_state.openai_api_key = api_key_clean
+            st.success("✅ API Key format valid")
+        elif api_key_clean:
+            st.session_state.openai_api_key = api_key_clean  # Store anyway, let validation happen later
+            if not api_key_clean.startswith("sk-"):
+                st.warning("⚠️ API key should start with 'sk-'")
+            elif len(api_key_clean) < 50:
+                st.warning(f"⚠️ API key seems too short ({len(api_key_clean)} chars)")
+    else:
+        # Clear session state if input is empty
+        if "openai_api_key" in st.session_state:
+            del st.session_state.openai_api_key
+    
+    st.markdown("---")
     
     # Book selection - must be first in sidebar
     book_options = list(BOOK_PATHS.keys())

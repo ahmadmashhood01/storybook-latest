@@ -30,13 +30,27 @@ if len(HARDCODED_API_KEY) < 50 or not HARDCODED_API_KEY.startswith("sk-"):
 def get_openai_api_key():
     """
     Get OpenAI API key with priority:
-    1. Streamlit secrets (if valid and not truncated)
-    2. Hardcoded fallback key (always works)
+    1. Session state (user-entered key from frontend)
+    2. Streamlit secrets (if valid and not truncated)
+    3. Hardcoded fallback key (always works)
     
     Returns:
         str: The API key (starts with 'sk-', 50+ characters)
     """
-    # Priority 1: Try Streamlit secrets (per Streamlit Cloud best practices)
+    # Priority 1: Check session state (user-entered key from frontend)
+    try:
+        import streamlit as st
+        session_key = st.session_state.get("openai_api_key", None)
+        if session_key:
+            session_key = str(session_key).strip()
+            # Validate the session key format
+            if session_key and len(session_key) >= 50 and session_key.startswith("sk-"):
+                print(f"🔑 Using API key from session state (length: {len(session_key)})")
+                return session_key
+    except Exception:
+        pass
+    
+    # Priority 2: Try Streamlit secrets (per Streamlit Cloud best practices)
     try:
         import streamlit as st
         try:
