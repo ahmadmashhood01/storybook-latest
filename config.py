@@ -16,23 +16,21 @@ except ImportError:
     pass
 
 # Try to get Streamlit secrets (for Streamlit Cloud)
+_api_key = None
 try:
     import streamlit as st
-    _streamlit_secrets = st.secrets
+    # Try to access the secret - this will raise an error if secrets file doesn't exist
+    try:
+        _api_key = st.secrets.get("OPENAI_API_KEY", None)
+    except Exception:
+        # Secrets file doesn't exist or key not found - that's okay, we'll use fallbacks
+        pass
 except (ImportError, AttributeError, RuntimeError):
     # Not running in Streamlit or secrets not available
-    _streamlit_secrets = None
+    pass
 
 # OpenAI API Key - Get yours from https://platform.openai.com/api-keys
 # Priority: 1) Streamlit secrets, 2) Environment variable OPENAI_API_KEY, 3) .env file, 4) Default key below
-_api_key = None
-
-# Check Streamlit secrets first (for Streamlit Cloud)
-if _streamlit_secrets:
-    try:
-        _api_key = _streamlit_secrets.get("OPENAI_API_KEY", None)
-    except (AttributeError, KeyError):
-        pass
 
 # Fallback to environment variable
 if not _api_key:

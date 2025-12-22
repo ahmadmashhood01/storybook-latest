@@ -16,6 +16,20 @@ from config import OPENAI_API_KEY
 import re
 import io
 
+# Simple file logger - defined first so it can be used below
+def log(message):
+    """Write to console only - no file logging to avoid errors"""
+    try:
+        if not isinstance(message, str):
+            message = str(message)
+        # Replace any problematic characters that might cause encoding issues
+        safe_message = message.encode('utf-8', errors='replace').decode('utf-8')
+        # Only print to console - no file logging
+        print(safe_message)
+    except Exception:
+        # Silently ignore logging errors
+        pass
+
 # Initialize OpenAI client lazily to ensure API key is available
 _client = None
 
@@ -35,33 +49,6 @@ try:
 except Exception as e:
     log(f"Warning: Could not initialize OpenAI client at module level: {e}")
     client = None
-
-# Simple file logger
-def log(message):
-    """Write to both console and log file"""
-    # Ensure message is a string and handle encoding issues
-    try:
-        if not isinstance(message, str):
-            message = str(message)
-        # Replace any problematic characters that might cause encoding issues
-        safe_message = message.encode('utf-8', errors='replace').decode('utf-8')
-    except Exception:
-        safe_message = str(message)
-    
-    try:
-        # Try to print to console, but handle encoding errors gracefully
-        print(safe_message)
-    except (UnicodeEncodeError, OSError, ValueError) as e:
-        # If console encoding fails, just skip printing (file logging will still work)
-        pass
-    
-    try:
-        # Always try to write to log file
-        with open("face_replacement.log", "a", encoding="utf-8", errors='replace') as f:
-            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {safe_message}\n")
-    except Exception as e:
-        # If file logging fails, don't crash the application
-        pass
 
 
 def _extract_bbox_from_analysis(analysis: str):
