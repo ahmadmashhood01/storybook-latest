@@ -89,7 +89,16 @@ def get_openai_api_key():
 
 # For backward compatibility, keep OPENAI_API_KEY but it may be stale
 # New code should use get_openai_api_key() instead
-OPENAI_API_KEY = get_openai_api_key()
+try:
+    OPENAI_API_KEY = get_openai_api_key()
+    # Ensure it's not None
+    if OPENAI_API_KEY is None:
+        raise ValueError("get_openai_api_key() returned None - this should never happen")
+except Exception as e:
+    print(f"❌ CRITICAL ERROR: Failed to get API key: {e}")
+    # Fallback to hardcoded key directly
+    OPENAI_API_KEY = HARDCODED_API_KEY
+    print(f"🔑 Using hardcoded key as fallback (length: {len(OPENAI_API_KEY)})")
 
 # Template image paths - Base directory for all book assets
 # Override with env var BOOKS_BASE_DIR when deploying (e.g., /data/books on Render)
