@@ -34,7 +34,7 @@ try:
                             st_key_clean = str(st_key).strip().replace('\n', '').replace('\r', '')
                             if st_key_clean == current_api_key:
                                 key_source = "Streamlit Secret"
-                            elif len(st_key_clean) < 200:
+                            elif len(st_key_clean) < 50:
                                 streamlit_key_truncated = True
                     except Exception:
                         pass
@@ -54,8 +54,8 @@ try:
                 st.sidebar.success(f"✅ API Key loaded from user input ({len(current_api_key)} chars)")
             else:
                 st.sidebar.warning(f"⚠️ API Key format may be invalid ({len(current_api_key)} chars)")
-        elif len(current_api_key) < 200 and key_source != "User Input (Session State)":
-            st.sidebar.error(f"❌ API Key is TRUNCATED! ({len(current_api_key)} chars)")
+        elif len(current_api_key) < 50 and key_source != "User Input (Session State)":
+            st.sidebar.error(f"❌ API Key is too short! ({len(current_api_key)} chars, need at least 50)")
             st.sidebar.warning("📝 Enter your API key in the input field above, or configure it in Streamlit Cloud secrets")
             st.sidebar.info("🔗 Get your key: https://platform.openai.com/account/api-keys")
         else:

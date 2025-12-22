@@ -52,28 +52,18 @@ def get_client():
         # Validate API key format before using
         if not isinstance(current_api_key, str):
             raise ValueError(f"API key must be a string, got {type(current_api_key)}")
-        if len(current_api_key) < 20:
-            raise ValueError(f"API key appears to be truncated (length: {len(current_api_key)}). Expected at least 20 characters.")
-        if not current_api_key.startswith("sk-"):
-            raise ValueError(f"API key format invalid. Should start with 'sk-', got: {current_api_key[:10]}...")
         
         # Ensure we have the full key (no truncation)
         api_key_to_use = str(current_api_key).strip()
         if len(api_key_to_use) != len(str(current_api_key).strip()):
             raise ValueError("API key appears to have been modified (whitespace issues)")
         
-        # Additional validation - check key length matches expected format
-        # OpenAI API keys for sk-proj- are typically 200+ characters (this one should be 219)
-        expected_min_length = 200
-        if len(api_key_to_use) < expected_min_length:
-            log(f"❌ CRITICAL ERROR: API key is TRUNCATED!")
-            log(f"   Current length: {len(api_key_to_use)} characters")
-            log(f"   Expected length: ~219 characters")
-            log(f"   Key preview: {api_key_to_use[:20]}...{api_key_to_use[-10:]}")
-            log(f"   📝 SOLUTION: Copy the FULL API key (all 219 characters) to Streamlit secrets")
-            log(f"   🔗 Get your key from: https://platform.openai.com/account/api-keys")
-            log(f"   ⚠️  The key will be rejected by OpenAI API (401 error) until it's complete")
-            # Don't raise here - let it fail with 401 so user sees the error message
+        # Validate key format (flexible length - OpenAI keys vary in length)
+        # Minimum 50 characters and must start with "sk-"
+        if len(api_key_to_use) < 50:
+            raise ValueError(f"API key appears to be too short (length: {len(api_key_to_use)}). Expected at least 50 characters.")
+        if not api_key_to_use.startswith("sk-"):
+            raise ValueError(f"API key format invalid. Should start with 'sk-', got: {api_key_to_use[:10]}...")
         
         # Log full key details for debugging (first 15 and last 10 chars only)
         key_preview = f"{api_key_to_use[:15]}...{api_key_to_use[-10:]}" if len(api_key_to_use) > 25 else api_key_to_use
