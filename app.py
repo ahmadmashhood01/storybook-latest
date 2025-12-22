@@ -81,7 +81,7 @@ with st.sidebar:
         
         # Display the image
         child_image = Image.open(io.BytesIO(file_bytes))
-        st.image(child_image, caption="Child's Photo", use_container_width=True)
+        st.image(child_image, caption="Child's Photo", width='stretch')
     
     # Child's name input
     child_name = st.text_input(
@@ -163,7 +163,7 @@ st.markdown(f"Upload a child's photo to create a personalized **{selected_book}*
 
 with col1:
     if uploaded_file and child_name:
-        if st.button("✨ Generate Storybook", type="primary", use_container_width=True):
+        if st.button("✨ Generate Storybook", type="primary", width='stretch'):
             with st.spinner("Preparing..."):
                 # Read child photo (reset file pointer first)
                 uploaded_file.seek(0)
@@ -267,6 +267,14 @@ with col1:
                 canonical_preview_placeholder = st.empty()
                 
                 try:
+                    # Verify API key before making calls
+                    if not OPENAI_API_KEY or OPENAI_API_KEY == "":
+                        st.error("❌ OpenAI API Key is not configured! Please add it to Streamlit Cloud secrets.")
+                        st.stop()
+                    
+                    status_text.text("Step 1/3: Generating canonical reference portrait... (This may take 30-60 seconds)")
+                    st.info(f"🔑 API Key status: {'✅ Loaded' if OPENAI_API_KEY else '❌ Missing'}")
+                    
                     canonical_reference_bytes, identity_info = generate_canonical_reference(
                         child_image_bytes=child_photo_bytes,
                         book_name=selected_book
@@ -281,42 +289,50 @@ with col1:
                         st.subheader("🎯 Canonical Reference (Identity Anchor)")
                         col_ref1, col_ref2 = st.columns(2)
                         with col_ref1:
-                            st.image(Image.open(io.BytesIO(child_photo_bytes)), caption="Original Photo", use_container_width=True)
+                            st.image(Image.open(io.BytesIO(child_photo_bytes)), caption="Original Photo", width='stretch')
                         with col_ref2:
-                            st.image(Image.open(io.BytesIO(canonical_reference_bytes)), caption="Canonical Reference", use_container_width=True)
+                            st.image(Image.open(io.BytesIO(canonical_reference_bytes)), caption="Canonical Reference", width='stretch')
                         st.caption("This reference portrait will be used for consistent identity across all pages.")
                     
                     status_text.text("Canonical reference generated! Processing pages...")
                     
                 except Exception as ref_error:
-                    st.warning(f"Could not generate canonical reference: {ref_error}. Using original photo.")
+                    error_msg = str(ref_error)
+                    st.error(f"❌ Error generating canonical reference: {error_msg}")
+                    st.exception(ref_error)  # Show full traceback
+                    st.warning("Using original photo as fallback. API calls may not be working.")
                     canonical_reference_bytes = child_photo_bytes
                     identity_info = None
                 
                 # Step 1: Process cover using new workflow (if requested and available)
                 if should_generate_cover and use_new_cover_workflow:
-                    status_text.text("Step 2/3: Processing cover (front cover personalization)...")
-                    
-                    # Read cover files
-                    front_cover_bytes = front_cover_path.read_bytes()
-                    back_cover_bytes = back_cover_path.read_bytes()
-                    full_cover_bytes = full_cover_path.read_bytes()
-                    
-                    # Process cover with new workflow
-                    cover_bytes, cover_dims = process_cover_with_new_workflow(
-                        child_photo_bytes,
-                        front_cover_bytes,
-                        back_cover_bytes,
-                        full_cover_bytes,
-                        child_name=child_name,
-                        book_name=selected_book
-                    )
-                    
-                    generated_images.append(cover_bytes)
-                    original_dimensions.append(cover_dims)
-                    current_step = 1
-                    next_msg = "Cover processed! Processing interior pages..." if interior_page_list else "Cover processed!"
-                    progress_callback(current_step, next_msg)
+                    try:
+                        status_text.text("Step 2/3: Processing cover (front cover personalization)... (This may take 1-2 minutes)")
+                        
+                        # Read cover files
+                        front_cover_bytes = front_cover_path.read_bytes()
+                        back_cover_bytes = back_cover_path.read_bytes()
+                        full_cover_bytes = full_cover_path.read_bytes()
+                        
+                        # Process cover with new workflow
+                        cover_bytes, cover_dims = process_cover_with_new_workflow(
+                            child_photo_bytes,
+                            front_cover_bytes,
+                            back_cover_bytes,
+                            full_cover_bytes,
+                            child_name=child_name,
+                            book_name=selected_book
+                        )
+                        
+                        generated_images.append(cover_bytes)
+                        original_dimensions.append(cover_dims)
+                        current_step = 1
+                        next_msg = "Cover processed! Processing interior pages..." if interior_page_list else "Cover processed!"
+                        progress_callback(current_step, next_msg)
+                    except Exception as cover_error:
+                        st.error(f"❌ Error processing cover: {str(cover_error)}")
+                        st.exception(cover_error)
+                        raise
                 
                 # Step 2: Process interior pages (pages 2-33) with canonical reference
                 if interior_page_list:
@@ -380,7 +396,7 @@ with col1:
         for i, img_bytes in enumerate(st.session_state.generated_images[:6]):
             with preview_cols[i % 3]:
                 img = Image.open(io.BytesIO(img_bytes))
-                st.image(img, caption=f"Page {i+1}", use_container_width=True)
+                st.image(img, caption=f"Page {i+1}", width='stretch')
         
         if len(st.session_state.generated_images) > 6:
             st.caption(f"... and {len(st.session_state.generated_images) - 6} more pages")
@@ -399,7 +415,7 @@ with col1:
                 file_name=f"{child_name}_{book_name_safe}.pdf",
                 mime="application/pdf",
                 type="primary",
-                use_container_width=True
+                width='stretch'
             )
 
 with col2:

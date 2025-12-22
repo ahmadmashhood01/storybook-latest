@@ -16,7 +16,12 @@ from config import OPENAI_API_KEY
 import re
 import io
 
+# Initialize OpenAI client with API key validation
+if not OPENAI_API_KEY or OPENAI_API_KEY == "":
+    raise ValueError("OpenAI API key is not configured! Please set OPENAI_API_KEY in Streamlit secrets or environment variable.")
+
 client = OpenAI(api_key=OPENAI_API_KEY)
+log(f"OpenAI client initialized with API key: {OPENAI_API_KEY[:10]}...{OPENAI_API_KEY[-4:] if len(OPENAI_API_KEY) > 14 else '***'}")
 
 # Simple file logger
 def log(message):
