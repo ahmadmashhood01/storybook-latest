@@ -44,6 +44,7 @@ def get_openai_api_key():
     try:
         import streamlit as st
         try:
+            # Try to get the full key from Streamlit secrets
             secret_key = st.secrets.get("OPENAI_API_KEY", None)
             if secret_key:
                 secret_key = str(secret_key).strip()
@@ -52,13 +53,24 @@ def get_openai_api_key():
                    (secret_key.startswith("'") and secret_key.endswith("'")):
                     secret_key = secret_key[1:-1].strip()
                 
+                # If truncated, try to get parts and combine them
+                if len(secret_key) < 200:
+                    print(f"⚠️ Streamlit secret is truncated ({len(secret_key)} chars), trying parts...")
+                    # Try to get key parts if they exist
+                    part1 = st.secrets.get("OPENAI_API_KEY_PART1", None)
+                    part2 = st.secrets.get("OPENAI_API_KEY_PART2", None)
+                    if part1 and part2:
+                        secret_key = str(part1).strip() + str(part2).strip()
+                        print(f"🔍 Combined parts: part1={len(str(part1))}, part2={len(str(part2))}, total={len(secret_key)}")
+                
                 # Only use Streamlit secret if it's the full length (not truncated)
                 if len(secret_key) >= 200 and secret_key.startswith("sk-"):
                     print(f"🔑 Using Streamlit secret (length: {len(secret_key)})")
                     return secret_key
                 else:
-                    print(f"⚠️ Streamlit secret is truncated ({len(secret_key)} chars), using hardcoded fallback")
-        except Exception:
+                    print(f"⚠️ Streamlit secret is still truncated ({len(secret_key)} chars), using hardcoded fallback")
+        except Exception as e:
+            print(f"⚠️ Error reading Streamlit secret: {e}")
             pass
     except Exception:
         pass
