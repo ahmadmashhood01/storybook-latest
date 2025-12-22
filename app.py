@@ -7,16 +7,37 @@ from pathlib import Path
 from PIL import Image
 import io
 import tempfile
-from config import TEMPLATE_IMAGES_DIR, TOTAL_PAGES, BOOKS_BASE_DIR, OPENAI_API_KEY
+from config import TEMPLATE_IMAGES_DIR, TOTAL_PAGES, BOOKS_BASE_DIR, OPENAI_API_KEY, get_openai_api_key
 from openai_client_new import generate_pages_for_book, process_cover_with_new_workflow, generate_canonical_reference
 from generate_pdf import create_pdf
 from book_utils import BOOK_PATHS, get_book_template_path
 
-# Debug: Check API key on app load (only show in sidebar for debugging)
-if OPENAI_API_KEY:
-    st.sidebar.success(f"✅ API Key loaded ({'Streamlit Secret' if hasattr(st, 'secrets') and hasattr(st.secrets, 'get') and st.secrets.get('OPENAI_API_KEY') else 'Config file'})")
-else:
-    st.sidebar.error("❌ API Key not found! Please configure it in Streamlit Cloud secrets.")
+# Debug: Check API key on app load (dynamically check Streamlit secrets)
+try:
+    current_api_key = get_openai_api_key()
+    if current_api_key:
+        # Determine key source
+        key_source = "Config/Default"
+        try:
+            if hasattr(st, 'secrets'):
+                try:
+                    if st.secrets.get("OPENAI_API_KEY", None) == current_api_key:
+                        key_source = "Streamlit Secret"
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        
+        if key_source == "Config/Default":
+            import os
+            if os.getenv("OPENAI_API_KEY") == current_api_key:
+                key_source = "Environment Variable"
+        
+        st.sidebar.success(f"✅ API Key loaded ({key_source})")
+    else:
+        st.sidebar.error("❌ API Key not found! Please configure it in Streamlit Cloud secrets.")
+except Exception as e:
+    st.sidebar.warning(f"⚠️ Could not verify API key: {e}")
 
 # Page configuration
 st.set_page_config(
@@ -267,13 +288,14 @@ with col1:
                 canonical_preview_placeholder = st.empty()
                 
                 try:
-                    # Verify API key before making calls
-                    if not OPENAI_API_KEY or OPENAI_API_KEY == "":
+                    # Verify API key before making calls (use dynamic function)
+                    current_api_key = get_openai_api_key()
+                    if not current_api_key or current_api_key == "":
                         st.error("❌ OpenAI API Key is not configured! Please add it to Streamlit Cloud secrets.")
                         st.stop()
                     
                     status_text.text("Step 1/3: Generating canonical reference portrait... (This may take 30-60 seconds)")
-                    st.info(f"🔑 API Key status: {'✅ Loaded' if OPENAI_API_KEY else '❌ Missing'}")
+                    st.info(f"🔑 API Key status: ✅ Loaded (using dynamic retrieval)")
                     
                     canonical_reference_bytes, identity_info = generate_canonical_reference(
                         child_image_bytes=child_photo_bytes,

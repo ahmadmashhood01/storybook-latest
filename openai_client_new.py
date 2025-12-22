@@ -12,7 +12,7 @@ from typing import List, Optional, Tuple
 from pathlib import Path
 from PIL import Image, ImageDraw
 from openai import OpenAI
-from config import OPENAI_API_KEY
+from config import OPENAI_API_KEY, get_openai_api_key
 import re
 import io
 
@@ -32,15 +32,48 @@ def log(message):
 
 # Initialize OpenAI client lazily to ensure API key is available
 _client = None
+_cached_api_key = None
 
 def get_client():
-    """Get or create OpenAI client instance"""
-    global _client
-    if _client is None:
-        if not OPENAI_API_KEY or OPENAI_API_KEY == "":
+    """
+    Get or create OpenAI client instance.
+    Dynamically retrieves API key each time to ensure Streamlit secrets are used.
+    """
+    global _client, _cached_api_key
+    
+    # Get the current API key dynamically (checks Streamlit secrets)
+    current_api_key = get_openai_api_key()
+    
+    # Re-initialize client if API key changed or client doesn't exist
+    if _client is None or _cached_api_key != current_api_key:
+        if not current_api_key or current_api_key == "":
             raise ValueError("OpenAI API key is not configured! Please set OPENAI_API_KEY in Streamlit secrets or environment variable.")
-        _client = OpenAI(api_key=OPENAI_API_KEY)
-        log(f"OpenAI client initialized with API key: {OPENAI_API_KEY[:10]}...{OPENAI_API_KEY[-4:] if len(OPENAI_API_KEY) > 14 else '***'}")
+        
+        _client = OpenAI(api_key=current_api_key)
+        _cached_api_key = current_api_key
+        
+        # Determine key source for logging
+        key_source = "Unknown"
+        try:
+            import streamlit as st
+            try:
+                if st.secrets.get("OPENAI_API_KEY", None) == current_api_key:
+                    key_source = "Streamlit Secret"
+            except Exception:
+                pass
+        except Exception:
+            pass
+        
+        if key_source == "Unknown":
+            import os
+            if os.getenv("OPENAI_API_KEY") == current_api_key:
+                key_source = "Environment Variable"
+            else:
+                key_source = "Default/Config"
+        
+        log(f"✅ OpenAI client initialized with API key from: {key_source}")
+        log(f"   API Key: {current_api_key[:10]}...{current_api_key[-4:] if len(current_api_key) > 14 else '***'}")
+    
     return _client
 
 # For backward compatibility, create client at module level
