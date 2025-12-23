@@ -45,7 +45,7 @@ def get_openai_api_key():
             session_key = str(session_key).strip()
             # Validate the session key format
             if session_key and len(session_key) >= 50 and session_key.startswith("sk-"):
-                print(f"🔑 Using API key from session state (length: {len(session_key)})")
+                print(f"[KEY] Using API key from session state (length: {len(session_key)})")
                 return session_key
     except Exception:
         pass
@@ -65,22 +65,22 @@ def get_openai_api_key():
                 
                 # If very short, try to get parts and combine them (for split key workaround)
                 if len(secret_key) < 50:
-                    print(f"⚠️ Streamlit secret is too short ({len(secret_key)} chars), trying parts...")
+                    print(f"[WARNING] Streamlit secret is too short ({len(secret_key)} chars), trying parts...")
                     # Try to get key parts if they exist
                     part1 = st.secrets.get("OPENAI_API_KEY_PART1", None)
                     part2 = st.secrets.get("OPENAI_API_KEY_PART2", None)
                     if part1 and part2:
                         secret_key = str(part1).strip() + str(part2).strip()
-                        print(f"🔍 Combined parts: part1={len(str(part1))}, part2={len(str(part2))}, total={len(secret_key)}")
+                        print(f"[INFO] Combined parts: part1={len(str(part1))}, part2={len(str(part2))}, total={len(secret_key)}")
                 
                 # Use Streamlit secret if it has valid format (>= 50 chars and starts with sk-)
                 if len(secret_key) >= 50 and secret_key.startswith("sk-"):
-                    print(f"🔑 Using Streamlit secret (length: {len(secret_key)})")
+                    print(f"[KEY] Using Streamlit secret (length: {len(secret_key)})")
                     return secret_key
                 else:
-                    print(f"⚠️ Streamlit secret format invalid ({len(secret_key)} chars), using hardcoded fallback")
+                    print(f"[WARNING] Streamlit secret format invalid ({len(secret_key)} chars), using hardcoded fallback")
         except Exception as e:
-            print(f"⚠️ Error reading Streamlit secret: {e}")
+            print(f"[WARNING] Error reading Streamlit secret: {e}")
             pass
     except Exception:
         pass
@@ -90,7 +90,7 @@ def get_openai_api_key():
     if len(HARDCODED_API_KEY) < 50 or not HARDCODED_API_KEY.startswith("sk-"):
         raise ValueError(f"CRITICAL: Hardcoded key invalid! Must start with 'sk-' and be 50+ chars. Got {len(HARDCODED_API_KEY)} chars")
     
-    print(f"🔑 Using hardcoded API key (length: {len(HARDCODED_API_KEY)})")
+    print(f"[KEY] Using hardcoded API key (length: {len(HARDCODED_API_KEY)})")
     
     return HARDCODED_API_KEY
 
@@ -102,10 +102,10 @@ try:
     if OPENAI_API_KEY is None:
         raise ValueError("get_openai_api_key() returned None - this should never happen")
 except Exception as e:
-    print(f"❌ CRITICAL ERROR: Failed to get API key: {e}")
+    print(f"[ERROR] CRITICAL ERROR: Failed to get API key: {e}")
     # Fallback to hardcoded key directly
     OPENAI_API_KEY = HARDCODED_API_KEY
-    print(f"🔑 Using hardcoded key as fallback (length: {len(OPENAI_API_KEY)})")
+    print(f"[KEY] Using hardcoded key as fallback (length: {len(OPENAI_API_KEY)})")
 
 # Template image paths - Base directory for all book assets
 # Override with env var BOOKS_BASE_DIR when deploying (e.g., /data/books on Render)

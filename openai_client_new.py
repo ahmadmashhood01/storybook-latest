@@ -67,14 +67,14 @@ def get_client():
         
         # Log full key details for debugging (first 15 and last 10 chars only)
         key_preview = f"{api_key_to_use[:15]}...{api_key_to_use[-10:]}" if len(api_key_to_use) > 25 else api_key_to_use
-        log(f"🔑 Using API key (length: {len(api_key_to_use)}): {key_preview}")
+        log(f"[KEY] Using API key (length: {len(api_key_to_use)}): {key_preview}")
         
         # Create client with validated key
         try:
             _client = OpenAI(api_key=api_key_to_use)
             _cached_api_key = api_key_to_use
         except Exception as e:
-            log(f"❌ ERROR creating OpenAI client: {e}")
+            log(f"[ERROR] ERROR creating OpenAI client: {e}")
             log(f"   Key length: {len(api_key_to_use)}")
             log(f"   Key starts with: {api_key_to_use[:10]}")
             raise
@@ -87,7 +87,7 @@ def get_client():
                 secret_key = st.secrets.get("OPENAI_API_KEY", None)
                 if secret_key and str(secret_key).strip() == api_key_to_use:
                     key_source = "Streamlit Secret"
-                    log(f"✅ Verified: Key matches Streamlit Secret")
+                    log(f"[OK] Verified: Key matches Streamlit Secret")
             except Exception:
                 pass
         except Exception:
@@ -101,7 +101,7 @@ def get_client():
             else:
                 key_source = "Default/Config"
         
-        log(f"✅ OpenAI client initialized with API key from: {key_source}")
+        log(f"[OK] OpenAI client initialized with API key from: {key_source}")
         log(f"   Key length: {len(api_key_to_use)} characters")
     
     return _client
