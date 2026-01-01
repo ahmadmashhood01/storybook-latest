@@ -70,7 +70,7 @@ except Exception as e:
 
 # Page configuration
 st.set_page_config(
-    page_title="Personalized Storybook Generator",
+    page_title="Personalized Storybook Generator - Latest",
     page_icon="📚",
     layout="wide"
 )
@@ -237,7 +237,7 @@ book_emoji = {
     "Little Farmer's Big Day": "🚜"
 }
 selected_book = st.session_state.selected_book
-st.title(f"{book_emoji.get(selected_book, '📚')} Personalized Storybook Generator")
+st.title(f"{book_emoji.get(selected_book, '📚')} Personalized Storybook Generator - Latest")
 st.markdown(f"Upload a child's photo to create a personalized **{selected_book}** storybook!")
 
 with col1:
@@ -395,13 +395,17 @@ with col1:
                         full_cover_bytes = full_cover_path.read_bytes()
                         
                         # Process cover with new workflow
+                        # CRITICAL: Pass canonical_reference_bytes to use clean portrait instead of
+                        # raw child photo - this prevents copying gestures/poses from child's photo
                         cover_bytes, cover_dims = process_cover_with_new_workflow(
                             child_photo_bytes,
                             front_cover_bytes,
                             back_cover_bytes,
                             full_cover_bytes,
                             child_name=child_name,
-                            book_name=selected_book
+                            book_name=selected_book,
+                            canonical_reference_bytes=canonical_reference_bytes,
+                            identity_info=identity_info
                         )
                         
                         generated_images.append(cover_bytes)

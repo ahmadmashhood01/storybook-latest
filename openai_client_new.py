@@ -571,7 +571,9 @@ def process_cover_with_new_workflow(
     back_cover_bytes: bytes,
     full_cover_bytes: bytes,
     child_name: str = None,
-    book_name: str = None
+    book_name: str = None,
+    canonical_reference_bytes: bytes = None,
+    identity_info: dict = None
 ) -> Tuple[bytes, Tuple[int, int]]:
     """
     Process the cover using the new workflow:
@@ -579,6 +581,9 @@ def process_cover_with_new_workflow(
     2. AI personalizes 00.png (high-res front cover) for better face/name replacement
     3. Scale AI result to match front portion dimensions from 1.png
     4. Reassemble: back (from 1.png) + spine (from 1.png) + scaled personalized front
+    
+    CRITICAL: Uses canonical_reference_bytes (clean front-facing portrait) instead of
+    raw child photo to prevent copying gestures/poses from the child's photo.
     
     IMPORTANT: 00.png and 0.png have different dimensions than 1.png!
     - 00.png/0.png: High-resolution individual covers (e.g., 1920x2000)
@@ -648,6 +653,9 @@ def process_cover_with_new_workflow(
         }
         log(f"Enforced cover expression: {template_expression['expression']} - {template_expression['description']}")
         
+        # CRITICAL: Use canonical_reference_bytes (clean front-facing portrait) instead of
+        # raw child_image_bytes to prevent copying gestures/poses from the child's photo.
+        # The canonical reference contains ONLY the face identity, no body/gestures.
         personalized_front_highres = generate_face_replacement_page(
             child_image_bytes,
             front_cover_bytes,
@@ -655,8 +663,11 @@ def process_cover_with_new_workflow(
             is_cover_page=True,
             child_name=child_name,
             book_name=book_name,
+            canonical_reference_bytes=canonical_reference_bytes,  # Use clean portrait, not raw photo!
+            identity_info=identity_info,  # Pass pre-analyzed identity features
             template_expression_override=template_expression  # Pass enforced expression
         )
+        log(f"Cover using canonical reference: {canonical_reference_bytes is not None}")
     else:
         log("Front cover has no child character - using original")
         personalized_front_highres = front_cover_bytes
