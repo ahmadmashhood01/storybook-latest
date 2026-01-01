@@ -2001,43 +2001,28 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
         template_expression = detect_template_expression(template_image_bytes)
         log(f"Template expression detected: {template_expression['expression']} - {template_expression['description']}")
         
-        # INTERIOR PAGES: NEVER show frown/sad/negative expression - ALWAYS ensure subtle smile
-        # The template ALWAYS has a subtle smile (user says so) - don't misread it as sad
-        # Override ANY expression that could look sad, frowning, or negative to happy
-        negative_expressions = ['sad', 'frowning', 'worried', 'scared', 'angry', 'frown', 'upset', 'crying', 'unhappy', 'distressed', 'concerned', 'anxious', 'fearful', 'somber', 'melancholy', 'downcast', 'gloomy']
-        negative_mouth_states = ['frowning', 'slight frown', 'frown', 'downturned', 'turned down', 'drooping']
-        
+        # INTERIOR PAGES: Never show frown/negative expression - override to happy if detected
+        # Keep all other expressions from the template (happy, neutral, surprised, etc.)
+        negative_expressions = ['sad', 'frowning', 'worried', 'scared', 'angry', 'frown', 'upset', 'crying']
         is_negative = (
             template_expression['expression'].lower() in negative_expressions or
             'frown' in template_expression.get('description', '').lower() or
-            'sad' in template_expression.get('description', '').lower() or
-            'down' in template_expression.get('description', '').lower() or
             'frown' in template_expression.get('mouth_state', '').lower() or
-            template_expression.get('mouth_state', '').lower() in negative_mouth_states or
-            template_expression.get('smile_intensity', 'none').lower() == 'none'
+            template_expression.get('mouth_state', '').lower() in ['frowning', 'slight frown', 'frown']
         )
         
-        # ALWAYS upgrade to subtle smile if detected as neutral or negative
-        # User says the template ALWAYS has a subtle smile - we might be missing it
-        if is_negative or template_expression['expression'].lower() == 'neutral':
-            log(f"HAPPY OVERRIDE: Page {page_number} - ensuring positive expression")
-            log(f"Original: {template_expression['expression']} - {template_expression.get('description', 'no description')}")
-            # Override to happy expression with subtle smile
+        if is_negative:
+            log(f"WARNING: Page {page_number} has negative/frown expression - overriding to happy")
+            log(f"Original expression: {template_expression['expression']} - {template_expression['description']}")
+            # Override to happy expression (never show frown on interior pages)
             template_expression['expression'] = 'happy'
             template_expression['smile_intensity'] = 'subtle'
             template_expression['mouth_state'] = 'gentle smile'
             template_expression['mood'] = 'happy and content'
-            template_expression['description'] = 'gentle happy smile with slightly upturned mouth corners - warm and positive'
+            template_expression['description'] = 'gentle happy smile - overridden from frown/negative'
             template_expression['teeth_visible'] = 'no'
             template_expression['mouth_openness'] = 'closed'
-            template_expression['eye_state'] = 'relaxed and happy'
             log(f"Overridden to: {template_expression['expression']} - {template_expression['description']}")
-        else:
-            # Even if not negative, ensure smile intensity is at least subtle
-            if template_expression.get('smile_intensity', 'none').lower() in ['none', '']:
-                template_expression['smile_intensity'] = 'subtle'
-                template_expression['mouth_state'] = 'gentle smile'
-                log(f"Upgraded smile intensity to subtle for page {page_number}")
     
     # Use pre-analyzed features from identity_info if available, otherwise analyze
     if identity_info and 'features' in identity_info:
@@ -2115,35 +2100,26 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             f"• NOT a wide grin or big smile\n"
             f"• NOT teeth showing (unless template shows teeth)\n"
             f"• Gentle, soft expression - NOT exaggerated happiness\n\n"
-            f"ABSOLUTE PROHIBITIONS (CRITICAL - NEVER VIOLATE):\n"
+            f"ABSOLUTE PROHIBITIONS:\n"
             f"✗ DO NOT look at the child photo's expression - COMPLETELY IGNORE IT\n"
             f"✗ DO NOT create a wide smile if template has subtle/gentle smile\n"
+            f"✗ DO NOT create a frown if template is smiling\n"
             f"✗ DO NOT show teeth if template doesn't show teeth\n"
             f"✗ DO NOT open mouth if template mouth is closed\n"
-            f"✗ DO NOT exaggerate the expression\n\n"
-            f"★★★ CRITICAL: NEVER CREATE SAD OR FROWNING FACES ★★★\n"
-            f"✗ NEVER create a sad expression - the child must ALWAYS look happy\n"
-            f"✗ NEVER create a frown or downturned mouth - ALWAYS slight upturn\n"
-            f"✗ NEVER make the child look worried, scared, upset, or unhappy\n"
-            f"✗ NEVER create a neutral flat mouth - ALWAYS have a subtle smile\n"
-            f"✗ If in doubt, add a SUBTLE SMILE - corners of mouth slightly upturned\n"
-            f"✗ The template ALWAYS has a subtle smile - look for it carefully!\n\n"
+            f"✗ DO NOT exaggerate or minimize the expression\n"
+            f"✗ DO NOT interpret emotion labels - COPY the visual appearance\n\n"
             f"REQUIRED ACTIONS:\n"
-            f"✓ LOOK at the template mouth position carefully - there is ALWAYS a subtle smile\n"
-            f"✓ COPY that mouth position but ensure corners are slightly UPTURNED (happy)\n"
+            f"✓ LOOK at the template mouth position carefully\n"
+            f"✓ COPY that EXACT mouth position to the output\n"
             f"✓ Match the EXACT smile intensity: {smile_intensity.upper()}\n"
-            f"✓ Match the EXACT mouth openness: {mouth_openness.upper()}\n"
-            f"✓ ENSURE the child looks HAPPY - never sad, never frowning\n"
-            f"✓ When in doubt, add a gentle, subtle smile with upturned mouth corners\n\n"
+            f"✓ Match the EXACT mouth openness: {mouth_openness.upper()}\n\n"
             f"The child photo provides ONLY: face shape, features, skin tone, hair\n"
             f"The template provides: EXACT expression to copy, pose, artistic style\n\n"
-            f"VERIFICATION CHECKLIST (ALL MUST BE YES):\n"
+            f"VERIFICATION CHECKLIST:\n"
             f"□ Is mouth openness {mouth_openness.upper()}? Must be YES\n"
             f"□ Is smile intensity {smile_intensity.upper()}? Must be YES\n"
             f"□ Are teeth visible matching template ({teeth_visible.upper()})? Must be YES\n"
-            f"□ Does the child look HAPPY (not sad/frowning)? MUST BE YES!\n"
-            f"□ Are mouth corners slightly UPTURNED (subtle smile)? MUST BE YES!\n"
-            f"□ Would a parent see this and think their child looks happy? MUST BE YES!\n\n"
+            f"□ Does mouth look EXACTLY like template? Must be YES\n\n"
         )
         
         # Build name replacement and layout-preservation instructions for cover pages
@@ -2366,8 +2342,7 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             "• Maintain crisp edges and clear definition for eyes, eyebrows, nose, and mouth\n"
             "• Ensure the face has proper depth and dimension, not flat or lifeless\n"
             "• The quality should match or exceed the quality of other elements in the illustration\n"
-            "• Do NOT compromise on face quality - it is the most important element of the image\n"
-            "• EXPRESSION REMINDER: The child MUST look HAPPY with a subtle smile - NEVER sad or frowning!\n\n"
+            "• Do NOT compromise on face quality - it is the most important element of the image\n\n"
             "=== ANTI-DEFORMATION RULES (CRITICAL - PREVENT STRETCHING/WARPING) ===\n"
             "MAINTAIN EXACT FACIAL PROPORTIONS FROM IMAGE 2:\n"
             "• Measure and preserve the exact ratio of face width to height\n"
