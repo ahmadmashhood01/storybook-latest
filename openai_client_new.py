@@ -2001,27 +2001,36 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
         template_expression = detect_template_expression(template_image_bytes)
         log(f"Template expression detected: {template_expression['expression']} - {template_expression['description']}")
         
-        # INTERIOR PAGES: Never show frown/negative expression - override to happy if detected
-        # Keep all other expressions from the template (happy, neutral, surprised, etc.)
-        negative_expressions = ['sad', 'frowning', 'worried', 'scared', 'angry', 'frown', 'upset', 'crying']
+        # INTERIOR PAGES: If expression seems sad/negative, override to subtle smile
+        # Keep all other expressions from the template (happy, surprised, excited, etc.)
+        negative_expressions = ['sad', 'frowning', 'worried', 'scared', 'angry', 'frown', 'upset', 'crying', 
+                               'unhappy', 'distressed', 'concerned', 'anxious', 'fearful', 'somber', 
+                               'melancholy', 'downcast', 'gloomy', 'dejected', 'miserable', 'sorrowful']
+        negative_mouth_states = ['frowning', 'slight frown', 'frown', 'downturned', 'turned down', 'drooping', 'pout', 'pouting']
+        negative_keywords = ['sad', 'frown', 'down', 'unhappy', 'negative', 'upset', 'cry', 'tear', 'worried', 'scared']
+        
+        description_lower = template_expression.get('description', '').lower()
+        mouth_state_lower = template_expression.get('mouth_state', '').lower()
+        
         is_negative = (
             template_expression['expression'].lower() in negative_expressions or
-            'frown' in template_expression.get('description', '').lower() or
-            'frown' in template_expression.get('mouth_state', '').lower() or
-            template_expression.get('mouth_state', '').lower() in ['frowning', 'slight frown', 'frown']
+            mouth_state_lower in negative_mouth_states or
+            any(keyword in description_lower for keyword in negative_keywords) or
+            any(keyword in mouth_state_lower for keyword in negative_keywords)
         )
         
         if is_negative:
-            log(f"WARNING: Page {page_number} has negative/frown expression - overriding to happy")
-            log(f"Original expression: {template_expression['expression']} - {template_expression['description']}")
-            # Override to happy expression (never show frown on interior pages)
+            log(f"SAD OVERRIDE: Page {page_number} has negative/sad expression - converting to subtle smile")
+            log(f"Original: {template_expression['expression']} - {template_expression.get('description', 'no desc')}")
+            # Override to subtle smile (never show sad/frown on any page)
             template_expression['expression'] = 'happy'
             template_expression['smile_intensity'] = 'subtle'
             template_expression['mouth_state'] = 'gentle smile'
             template_expression['mood'] = 'happy and content'
-            template_expression['description'] = 'gentle happy smile - overridden from frown/negative'
+            template_expression['description'] = 'gentle subtle smile with slightly upturned mouth corners'
             template_expression['teeth_visible'] = 'no'
             template_expression['mouth_openness'] = 'closed'
+            template_expression['eye_state'] = 'relaxed and warm'
             log(f"Overridden to: {template_expression['expression']} - {template_expression['description']}")
     
     # Use pre-analyzed features from identity_info if available, otherwise analyze
@@ -2252,8 +2261,29 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             "• EXACT composition, framing, perspective\n"
             "• Outside the face/hair/neck region, every pixel must remain IDENTICAL to IMAGE 1\n\n"
             "=== POSE & ORIENTATION PRESERVATION (CRITICAL - PRESERVE TEMPLATE POSE) ===\n"
-            "The child's BODY POSE, ORIENTATION, and FACING DIRECTION from IMAGE 1 (template) must be PRESERVED EXACTLY:\n"
-            "• BODY POSE: Preserve EXACT body position, stance, and pose from IMAGE 1 (standing, sitting, crouching, etc.)\n"
+            "╔══════════════════════════════════════════════════════════════════╗\n"
+            "║  STRICTLY FOLLOW TEMPLATE (IMAGE 1) FOR ALL POSES & GESTURES    ║\n"
+            "║  COMPLETELY IGNORE ANY POSES/GESTURES IN CHILD PHOTO (IMAGE 2)  ║\n"
+            "╚══════════════════════════════════════════════════════════════════╝\n\n"
+            "The child's BODY POSE, ORIENTATION, and FACING DIRECTION from IMAGE 1 (template) must be PRESERVED EXACTLY:\n\n"
+            "★★★ HAND GESTURES (COPY EXACTLY FROM TEMPLATE) ★★★\n"
+            "• Copy EXACT hand positions from IMAGE 1 (template)\n"
+            "• Copy EXACT finger positions and gestures from IMAGE 1\n"
+            "• Copy EXACT hand-to-body placement from IMAGE 1\n"
+            "• If template shows hands raised, output MUST have hands raised\n"
+            "• If template shows hands at sides, output MUST have hands at sides\n"
+            "• If template shows hands holding something, output MUST match exactly\n"
+            "• IGNORE any hand gestures visible in child photo - use ONLY template\n\n"
+            "★★★ ARM POSITIONS (COPY EXACTLY FROM TEMPLATE) ★★★\n"
+            "• Copy EXACT arm positions from IMAGE 1 (template)\n"
+            "• Copy EXACT elbow angles and arm placement from IMAGE 1\n"
+            "• IGNORE any arm positions visible in child photo - use ONLY template\n\n"
+            "★★★ BODY LANGUAGE (COPY EXACTLY FROM TEMPLATE) ★★★\n"
+            "• Copy EXACT body pose from IMAGE 1 (standing, sitting, crouching, etc.)\n"
+            "• Copy EXACT stance and posture from IMAGE 1\n"
+            "• Copy EXACT body tilt or lean from IMAGE 1\n"
+            "• IGNORE any body language visible in child photo - use ONLY template\n\n"
+            "★★★ HEAD & FACE ORIENTATION (COPY EXACTLY FROM TEMPLATE) ★★★\n"
             "• HEAD ORIENTATION: Preserve EXACT head angle and facing direction from IMAGE 1:\n"
             "  - If child in IMAGE 1 is facing FRONT (toward viewer), result must also face FRONT\n"
             "  - If child in IMAGE 1 is facing AWAY (back to viewer), result must also face AWAY\n"
@@ -2261,14 +2291,16 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             "  - If child in IMAGE 1 is facing RIGHT, result must also face RIGHT\n"
             "  - If child in IMAGE 1 is facing at an ANGLE (3/4 view, profile, etc.), result must match that EXACT angle\n"
             "• BODY ORIENTATION: Preserve EXACT body angle and position relative to viewer/camera from IMAGE 1\n"
-            "• LIMB PLACEMENT: Preserve EXACT arm and leg positions, gestures, and poses from IMAGE 1\n"
-            "• STANCE & POSTURE: Preserve EXACT stance, posture, and body language from IMAGE 1\n"
+            "• IGNORE any head orientation visible in child photo - use ONLY template\n\n"
+            "★★★ ABSOLUTE RULES (NON-NEGOTIABLE) ★★★\n"
             "• Do NOT change the child's pose, orientation, or facing direction - these must match IMAGE 1 exactly\n"
             "• Do NOT rotate or reorient the child's body or head - preserve the exact orientation from template\n"
+            "• Do NOT use ANY pose, gesture, or body position from the child photo (IMAGE 2)\n"
             "• The face replacement should ONLY change the facial features, NOT the pose or orientation\n"
             "• If the template child is facing away, the result must also face away (even if only the back of head is visible)\n"
             "• If the template child is in profile view, the result must also be in profile view\n"
-            "• The body position, head angle, and facing direction are LOCKED from IMAGE 1 - do not modify them\n\n"
+            "• The body position, head angle, and facing direction are LOCKED from IMAGE 1 - do not modify them\n"
+            "• CHILD PHOTO (IMAGE 2) = FACE IDENTITY ONLY, NOT POSES OR GESTURES\n\n"
             f"=== FACIAL EXPRESSION PRESERVATION (CRITICAL - COPY EXACT MOUTH POSITION) ===\n"
             f"The template expression has been PRE-ANALYZED with PRECISE measurements.\n"
             f"You MUST COPY the EXACT visual appearance of the mouth - do NOT interpret!\n\n"
@@ -2292,8 +2324,31 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             f"• The expression comes 100% from VISUALLY COPYING the template\n"
             f"• Facial FEATURES (shape, structure) come from child photo\n"
             f"• Facial EXPRESSION (mouth position, smile, eyes) come from template - COPY EXACTLY\n\n"
-            "=== IMAGE 2 — CHILD PHOTO (IDENTITY REFERENCE) ===\n"
+            "=== IMAGE 2 — CHILD PHOTO (IDENTITY REFERENCE ONLY) ===\n"
             "This child's features have been PRE-ANALYZED. You MUST preserve these EXACT features:\n\n"
+            "╔══════════════════════════════════════════════════════════════════╗\n"
+            "║  CRITICAL: CHILD PHOTO LIMITATIONS - READ CAREFULLY!             ║\n"
+            "╚══════════════════════════════════════════════════════════════════╝\n\n"
+            "★★★ USE CHILD PHOTO ONLY FOR: ★★★\n"
+            "✓ Face shape and structure\n"
+            "✓ Eye color, shape, and details\n"
+            "✓ Nose shape and details\n"
+            "✓ Mouth/lip structure (NOT expression)\n"
+            "✓ Skin tone and complexion\n"
+            "✓ Hair color and texture\n"
+            "✓ Distinctive facial features (freckles, dimples, etc.)\n\n"
+            "★★★ DO NOT USE CHILD PHOTO FOR (COMPLETELY IGNORE): ★★★\n"
+            "✗ Body pose or position - USE TEMPLATE INSTEAD\n"
+            "✗ Hand gestures or positions - USE TEMPLATE INSTEAD\n"
+            "✗ Arm positions - USE TEMPLATE INSTEAD\n"
+            "✗ Body language or stance - USE TEMPLATE INSTEAD\n"
+            "✗ Facial expression - USE TEMPLATE INSTEAD\n"
+            "✗ Head angle or tilt - USE TEMPLATE INSTEAD\n"
+            "✗ Any gesture visible in child photo - COMPLETELY IGNORE\n\n"
+            "If the child photo shows ANY pose, gesture, or expression:\n"
+            "→ COMPLETELY IGNORE IT\n"
+            "→ Use ONLY the template's pose, gesture, and expression\n"
+            "→ The child photo provides IDENTITY only, not actions\n\n"
             f"THE CHILD'S SPECIFIC FEATURES TO PRESERVE:\n"
             f"• FACE: {child_features['face_shape']}\n"
             f"• EYES: {child_features['eyes']}\n"
