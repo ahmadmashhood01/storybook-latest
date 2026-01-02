@@ -2,13 +2,11 @@
 Streamlit app for generating personalized storybooks
 """
 import streamlit as st
-import streamlit.components.v1 as components
 import os
 from pathlib import Path
 from PIL import Image
 import io
 import tempfile
-import base64
 from config import TEMPLATE_IMAGES_DIR, TOTAL_PAGES, BOOKS_BASE_DIR, OPENAI_API_KEY, get_openai_api_key
 from openai_client_new import generate_pages_for_book, process_cover_with_new_workflow, generate_canonical_reference
 from generate_pdf import create_pdf
@@ -89,11 +87,6 @@ if 'canonical_reference' not in st.session_state:
     st.session_state.canonical_reference = None
 if 'identity_info' not in st.session_state:
     st.session_state.identity_info = None
-# Auto-download flag for PDF
-if 'auto_download_pdf' not in st.session_state:
-    st.session_state.auto_download_pdf = False
-if 'pdf_download_filename' not in st.session_state:
-    st.session_state.pdf_download_filename = None
 
 # Sidebar for inputs
 with st.sidebar:
@@ -471,13 +464,8 @@ with col1:
                 st.session_state.generated_images = generated_images
                 st.session_state.pdf_path = pdf_path
                 
-                # Set auto-download flag and filename
-                book_name_safe = selected_book.replace(" ", "_")
-                st.session_state.pdf_download_filename = f"{child_name}_{book_name_safe}.pdf"
-                st.session_state.auto_download_pdf = True
-                
                 status_text.text("✅ Storybook generated successfully!")
-                st.success("🎉 Your personalized storybook is ready! Download starting automatically...")
+                st.success("🎉 Your personalized storybook is ready!")
                 
             except Exception as e:
                 st.error(f"Error generating storybook: {str(e)}")
@@ -505,74 +493,16 @@ with col1:
             
             # Get selected book name for filename (sanitize for filesystem)
             book_name_safe = st.session_state.selected_book.replace(" ", "_")
-            download_filename = st.session_state.pdf_download_filename or f"{child_name}_{book_name_safe}.pdf"
+            download_filename = f"{child_name}_{book_name_safe}.pdf"
             
-            # Auto-trigger download if flag is set (use components.html for better control)
-            if st.session_state.auto_download_pdf:
-                # Check PDF size - if too large, skip auto-download (base64 encoding might fail)
-                pdf_size_mb = len(pdf_bytes) / (1024 * 1024)
-                max_size_mb = 15  # Limit to 15MB for auto-download
-                
-                if pdf_size_mb <= max_size_mb:
-                    try:
-                        # Convert PDF to base64 for blob creation
-                        pdf_base64 = base64.b64encode(pdf_bytes).decode()
-                        
-                        # Create HTML component that auto-downloads using blob URL
-                        auto_download_html = f"""
-                        <script>
-                            (function() {{
-                                try {{
-                                    // Create blob from base64
-                                    var byteCharacters = atob('{pdf_base64}');
-                                    var byteNumbers = new Array(byteCharacters.length);
-                                    for (var i = 0; i < byteCharacters.length; i++) {{
-                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                    }}
-                                    var byteArray = new Uint8Array(byteNumbers);
-                                    var blob = new Blob([byteArray], {{type: 'application/pdf'}});
-                                    
-                                    // Create download link and trigger
-                                    var url = URL.createObjectURL(blob);
-                                    var link = document.createElement('a');
-                                    link.href = url;
-                                    link.download = '{download_filename}';
-                                    link.style.display = 'none';
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    
-                                    // Clean up after a delay
-                                    setTimeout(function() {{
-                                        URL.revokeObjectURL(url);
-                                    }}, 1000);
-                                    
-                                    console.log('Auto-download triggered for {download_filename}');
-                                }} catch (e) {{
-                                    console.error('Auto-download error:', e);
-                                }}
-                            }})();
-                        </script>
-                        """
-                        components.html(auto_download_html, height=0)
-                        st.success("📥 Download started automatically!")
-                    except Exception as e:
-                        st.warning(f"⚠️ Auto-download failed: {str(e)}. Please use the download button below.")
-                else:
-                    st.info(f"📥 PDF is large ({pdf_size_mb:.1f}MB). Please use the download button below.")
-                
-                # Clear the flag
-                st.session_state.auto_download_pdf = False
-            
-            # Show download button as backup/manual option
+            # Download button
             st.download_button(
                 label="📥 Download PDF",
                 data=pdf_bytes,
                 file_name=download_filename,
                 mime="application/pdf",
                 type="primary",
-                width='stretch',
-                key="pdf_download_button"
+                width='stretch'
             )
 
 with col2:
