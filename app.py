@@ -509,43 +509,60 @@ with col1:
             
             # Auto-trigger download if flag is set (use components.html for better control)
             if st.session_state.auto_download_pdf:
-                # Convert PDF to base64 for data URL
-                pdf_base64 = base64.b64encode(pdf_bytes).decode()
+                # Check PDF size - if too large, skip auto-download (base64 encoding might fail)
+                pdf_size_mb = len(pdf_bytes) / (1024 * 1024)
+                max_size_mb = 15  # Limit to 15MB for auto-download
                 
-                # Create HTML component that auto-downloads
-                auto_download_html = f"""
-                <script>
-                    (function() {{
-                        // Create blob from base64
-                        var byteCharacters = atob('{pdf_base64}');
-                        var byteNumbers = new Array(byteCharacters.length);
-                        for (var i = 0; i < byteCharacters.length; i++) {{
-                            byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        }}
-                        var byteArray = new Uint8Array(byteNumbers);
-                        var blob = new Blob([byteArray], {{type: 'application/pdf'}});
+                if pdf_size_mb <= max_size_mb:
+                    try:
+                        # Convert PDF to base64 for blob creation
+                        pdf_base64 = base64.b64encode(pdf_bytes).decode()
                         
-                        // Create download link and trigger
-                        var url = URL.createObjectURL(blob);
-                        var link = document.createElement('a');
-                        link.href = url;
-                        link.download = '{download_filename}';
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        
-                        // Clean up
-                        setTimeout(function() {{
-                            URL.revokeObjectURL(url);
-                        }}, 100);
-                    }})();
-                </script>
-                """
-                components.html(auto_download_html, height=0)
+                        # Create HTML component that auto-downloads using blob URL
+                        auto_download_html = f"""
+                        <script>
+                            (function() {{
+                                try {{
+                                    // Create blob from base64
+                                    var byteCharacters = atob('{pdf_base64}');
+                                    var byteNumbers = new Array(byteCharacters.length);
+                                    for (var i = 0; i < byteCharacters.length; i++) {{
+                                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                    }}
+                                    var byteArray = new Uint8Array(byteNumbers);
+                                    var blob = new Blob([byteArray], {{type: 'application/pdf'}});
+                                    
+                                    // Create download link and trigger
+                                    var url = URL.createObjectURL(blob);
+                                    var link = document.createElement('a');
+                                    link.href = url;
+                                    link.download = '{download_filename}';
+                                    link.style.display = 'none';
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    
+                                    // Clean up after a delay
+                                    setTimeout(function() {{
+                                        URL.revokeObjectURL(url);
+                                    }}, 1000);
+                                    
+                                    console.log('Auto-download triggered for {download_filename}');
+                                }} catch (e) {{
+                                    console.error('Auto-download error:', e);
+                                }}
+                            }})();
+                        </script>
+                        """
+                        components.html(auto_download_html, height=0)
+                        st.success("📥 Download started automatically!")
+                    except Exception as e:
+                        st.warning(f"⚠️ Auto-download failed: {str(e)}. Please use the download button below.")
+                else:
+                    st.info(f"📥 PDF is large ({pdf_size_mb:.1f}MB). Please use the download button below.")
                 
                 # Clear the flag
                 st.session_state.auto_download_pdf = False
-                st.info("📥 Download started automatically! If it didn't work, use the button below.")
             
             # Show download button as backup/manual option
             st.download_button(
