@@ -7,6 +7,7 @@ from pathlib import Path
 from PIL import Image
 import io
 import tempfile
+import base64
 from config import TEMPLATE_IMAGES_DIR, TOTAL_PAGES, BOOKS_BASE_DIR, OPENAI_API_KEY, get_openai_api_key
 from openai_client_new import generate_pages_for_book, process_cover_with_new_workflow, generate_canonical_reference
 from generate_pdf import create_pdf
@@ -87,6 +88,11 @@ if 'canonical_reference' not in st.session_state:
     st.session_state.canonical_reference = None
 if 'identity_info' not in st.session_state:
     st.session_state.identity_info = None
+# Auto-download flag for PDF
+if 'auto_download_pdf' not in st.session_state:
+    st.session_state.auto_download_pdf = False
+if 'pdf_download_filename' not in st.session_state:
+    st.session_state.pdf_download_filename = None
 
 # Sidebar for inputs
 with st.sidebar:
@@ -464,8 +470,13 @@ with col1:
                 st.session_state.generated_images = generated_images
                 st.session_state.pdf_path = pdf_path
                 
+                # Set auto-download flag and filename
+                book_name_safe = selected_book.replace(" ", "_")
+                st.session_state.pdf_download_filename = f"{child_name}_{book_name_safe}.pdf"
+                st.session_state.auto_download_pdf = True
+                
                 status_text.text("✅ Storybook generated successfully!")
-                st.success("🎉 Your personalized storybook is ready!")
+                st.success("🎉 Your personalized storybook is ready! Download starting automatically...")
                 
             except Exception as e:
                 st.error(f"Error generating storybook: {str(e)}")
@@ -493,10 +504,38 @@ with col1:
             
             # Get selected book name for filename (sanitize for filesystem)
             book_name_safe = st.session_state.selected_book.replace(" ", "_")
+            download_filename = st.session_state.pdf_download_filename or f"{child_name}_{book_name_safe}.pdf"
+            
+            # Auto-trigger download if flag is set (before showing button)
+            if st.session_state.auto_download_pdf:
+                # Create a data URL for the PDF and auto-download it
+                pdf_base64 = base64.b64encode(pdf_bytes).decode()
+                download_js = f"""
+                <script>
+                    (function() {{
+                        // Create a data URL for the PDF
+                        var pdfData = 'data:application/pdf;base64,{pdf_base64}';
+                        
+                        // Create a temporary anchor element and trigger download
+                        var link = document.createElement('a');
+                        link.href = pdfData;
+                        link.download = '{download_filename}';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }})();
+                </script>
+                """
+                st.markdown(download_js, unsafe_allow_html=True)
+                
+                # Clear the auto-download flag after triggering
+                st.session_state.auto_download_pdf = False
+            
+            # Show download button as backup
             st.download_button(
                 label="📥 Download PDF",
                 data=pdf_bytes,
-                file_name=f"{child_name}_{book_name_safe}.pdf",
+                file_name=download_filename,
                 mime="application/pdf",
                 type="primary",
                 width='stretch'
