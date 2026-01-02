@@ -1570,7 +1570,7 @@ def generate_canonical_reference(
     - Clean, front-facing view
     - Neutral expression (slight smile)
     - Correct skin tone, hair color, eye color from original photo
-    - Semi-realistic style matching the book's artistic style
+    - REALISTIC/PHOTOGRAPHIC style (NOT illustrated) - preserves real appearance
     - Neutral lighting for consistent application across pages
     
     Args:
@@ -1619,11 +1619,13 @@ def generate_canonical_reference(
         "• Clean, even lighting on face\n"
         "• Plain neutral background (light gray or soft gradient)\n\n"
         
-        "ARTISTIC STYLE:\n"
-        "• Semi-realistic children's book illustration style\n"
-        "• Soft, warm rendering suitable for storybooks\n"
-        "• Clean lines and clear facial features\n"
-        "• The face must be INSTANTLY RECOGNIZABLE as this specific child\n\n"
+        "ARTISTIC STYLE (PRESERVE REALISM):\n"
+        "• Keep the child looking REALISTIC and PHOTOGRAPHIC - NOT illustrated or cartoon\n"
+        "• Preserve the natural, realistic appearance of skin, hair, and features\n"
+        "• The face must look like a REAL child, not a drawn or painted version\n"
+        "• DO NOT stylize, cartoonify, or illustrate - keep it looking like a real photograph\n"
+        "• The face must be INSTANTLY RECOGNIZABLE as this specific child\n"
+        "• Natural skin texture, realistic hair strands, lifelike eyes\n\n"
         
         "OUTPUT:\n"
         "• Head and shoulders portrait\n"
