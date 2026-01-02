@@ -2,6 +2,7 @@
 Streamlit app for generating personalized storybooks
 """
 import streamlit as st
+import streamlit.components.v1 as components
 import os
 from pathlib import Path
 from PIL import Image
@@ -506,39 +507,55 @@ with col1:
             book_name_safe = st.session_state.selected_book.replace(" ", "_")
             download_filename = st.session_state.pdf_download_filename or f"{child_name}_{book_name_safe}.pdf"
             
-            # Auto-trigger download if flag is set (before showing button)
+            # Auto-trigger download if flag is set (use components.html for better control)
             if st.session_state.auto_download_pdf:
-                # Create a data URL for the PDF and auto-download it
+                # Convert PDF to base64 for data URL
                 pdf_base64 = base64.b64encode(pdf_bytes).decode()
-                download_js = f"""
+                
+                # Create HTML component that auto-downloads
+                auto_download_html = f"""
                 <script>
                     (function() {{
-                        // Create a data URL for the PDF
-                        var pdfData = 'data:application/pdf;base64,{pdf_base64}';
+                        // Create blob from base64
+                        var byteCharacters = atob('{pdf_base64}');
+                        var byteNumbers = new Array(byteCharacters.length);
+                        for (var i = 0; i < byteCharacters.length; i++) {{
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }}
+                        var byteArray = new Uint8Array(byteNumbers);
+                        var blob = new Blob([byteArray], {{type: 'application/pdf'}});
                         
-                        // Create a temporary anchor element and trigger download
+                        // Create download link and trigger
+                        var url = URL.createObjectURL(blob);
                         var link = document.createElement('a');
-                        link.href = pdfData;
+                        link.href = url;
                         link.download = '{download_filename}';
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
+                        
+                        // Clean up
+                        setTimeout(function() {{
+                            URL.revokeObjectURL(url);
+                        }}, 100);
                     }})();
                 </script>
                 """
-                st.markdown(download_js, unsafe_allow_html=True)
+                components.html(auto_download_html, height=0)
                 
-                # Clear the auto-download flag after triggering
+                # Clear the flag
                 st.session_state.auto_download_pdf = False
+                st.info("📥 Download started automatically! If it didn't work, use the button below.")
             
-            # Show download button as backup
+            # Show download button as backup/manual option
             st.download_button(
                 label="📥 Download PDF",
                 data=pdf_bytes,
                 file_name=download_filename,
                 mime="application/pdf",
                 type="primary",
-                width='stretch'
+                width='stretch',
+                key="pdf_download_button"
             )
 
 with col2:
