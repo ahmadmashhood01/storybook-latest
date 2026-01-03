@@ -2014,13 +2014,16 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
         template_expression = detect_template_expression(template_image_bytes)
         log(f"Template expression detected: {template_expression['expression']} - {template_expression['description']}")
         
-        # INTERIOR PAGES: If expression seems sad/negative, override to subtle smile
-        # Keep all other expressions from the template (happy, surprised, excited, etc.)
+        # ALL PAGES: If expression seems sad/negative/neutral, override to subtle smile
+        # The child should ALWAYS have at least a subtle smile - never sad, frowning, or neutral
         negative_expressions = ['sad', 'frowning', 'worried', 'scared', 'angry', 'frown', 'upset', 'crying', 
                                'unhappy', 'distressed', 'concerned', 'anxious', 'fearful', 'somber', 
-                               'melancholy', 'downcast', 'gloomy', 'dejected', 'miserable', 'sorrowful']
-        negative_mouth_states = ['frowning', 'slight frown', 'frown', 'downturned', 'turned down', 'drooping', 'pout', 'pouting']
-        negative_keywords = ['sad', 'frown', 'down', 'unhappy', 'negative', 'upset', 'cry', 'tear', 'worried', 'scared']
+                               'melancholy', 'downcast', 'gloomy', 'dejected', 'miserable', 'sorrowful',
+                               'neutral', 'serious', 'blank', 'expressionless', 'stoic', 'flat']
+        negative_mouth_states = ['frowning', 'slight frown', 'frown', 'downturned', 'turned down', 'drooping', 
+                                'pout', 'pouting', 'neutral', 'flat', 'straight', 'closed neutral']
+        negative_keywords = ['sad', 'frown', 'down', 'unhappy', 'negative', 'upset', 'cry', 'tear', 'worried', 
+                            'scared', 'neutral', 'serious', 'blank', 'no smile', 'not smiling']
         
         description_lower = template_expression.get('description', '').lower()
         mouth_state_lower = template_expression.get('mouth_state', '').lower()
@@ -2033,7 +2036,7 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
         )
         
         if is_negative:
-            log(f"SAD OVERRIDE: Page {page_number} has negative/sad expression - converting to subtle smile")
+            log(f"SMILE OVERRIDE: Page {page_number} has sad/negative/neutral expression - converting to subtle smile")
             log(f"Original: {template_expression['expression']} - {template_expression.get('description', 'no desc')}")
             # Override to subtle smile (never show sad/frown on any page)
             template_expression['expression'] = 'happy'
@@ -2387,43 +2390,40 @@ def generate_face_replacement_page(child_image_bytes: bytes, template_image_byte
             f"• SMILE INTENSITY: {smile_intensity.upper()} - do not exaggerate or minimize\n"
             f"• TEETH: {'show teeth' if teeth_visible == 'yes' else 'NO teeth visible'}\n"
             f"• IGNORE child photo's expression completely - COPY template visually\n\n"
-            "=== STYLE REALISM MATCHING (CRITICAL - MATCH TEMPLATE'S EXACT STYLE) ===\n"
+            "=== CHILD MUST BE FULLY REALISTIC (ABSOLUTE REQUIREMENT) ===\n"
             "╔══════════════════════════════════════════════════════════════════╗\n"
-            "║  MATCH THE EXACT LEVEL OF REALISM FROM IMAGE 1 (TEMPLATE)       ║\n"
+            "║  ALWAYS RENDER THE CHILD AS FULLY REALISTIC / PHOTOGRAPHIC      ║\n"
+            "║  NEVER ILLUSTRATED, CARTOON, PAINTED, OR STYLIZED               ║\n"
             "╚══════════════════════════════════════════════════════════════════╝\n\n"
-            "The output MUST match the EXACT level of realism in IMAGE 1 (template):\n\n"
-            "★★★ IF TEMPLATE LOOKS PHOTOREALISTIC/SEMI-REAL: ★★★\n"
-            "• Output child MUST also look photorealistic/semi-real\n"
-            "• Preserve realistic skin texture (smooth, natural, not painted)\n"
-            "• Preserve realistic hair strands (individual hairs visible, not painted blocks)\n"
-            "• Preserve realistic eye details (natural reflections, realistic iris)\n"
-            "• Preserve realistic lighting (natural shadows, soft gradients)\n"
-            "• DO NOT make it look more 'drawn' or 'illustrated' than the template\n"
-            "• DO NOT add cartoon-like features or simplified rendering\n\n"
-            "★★★ IF TEMPLATE LOOKS ILLUSTRATED/CARTOON: ★★★\n"
-            "• Output child MUST also look illustrated/cartoon\n"
-            "• Match the painterly/brush stroke style\n"
-            "• Match the stylized features and simplified rendering\n\n"
-            "★★★ REALISM DETECTION - LOOK AT IMAGE 1 CAREFULLY: ★★★\n"
-            "• Does the child's skin have realistic pores/texture? → Output must too\n"
-            "• Does the child's hair look like real hair strands? → Output must too\n"
-            "• Do the eyes have photographic detail? → Output must too\n"
-            "• Does the lighting look like real-world lighting? → Output must too\n\n"
-            "★★★ ABSOLUTE PROHIBITIONS: ★★★\n"
-            "✗ DO NOT default to cartoon/illustrated style when template is realistic\n"
-            "✗ DO NOT make the child look more 'drawn' than they appear in the template\n"
-            "✗ DO NOT simplify or stylize features if template has realistic detail\n"
-            "✗ DO NOT add painterly brush strokes if template has smooth realistic skin\n\n"
-            "=== ARTISTIC TECHNIQUE MATCHING ===\n"
-            "Match IMAGE 1's exact rendering technique:\n"
-            "• Match the exact skin rendering (smooth realistic vs. painted texture)\n"
-            "• Match the exact hair rendering (realistic strands vs. painted blocks)\n"
-            "• Match the exact eye detail level (photographic vs. stylized)\n"
-            "• Match the color saturation and palette\n"
-            "• Match the lighting and shadow style\n"
-            "• Match the edge softness/hardness\n"
-            "• The face should seamlessly integrate with the template's style\n"
-            "• Preserve the child's unique features rendered in the SAME style as template\n\n"
+            "★★★ THE CHILD MUST ALWAYS LOOK LIKE A REAL PHOTOGRAPH ★★★\n\n"
+            "REALISTIC REQUIREMENTS (MANDATORY FOR ALL IMAGES):\n"
+            "• The child must look like a REAL person in a photograph\n"
+            "• Natural, realistic skin texture - smooth, lifelike, with natural pores\n"
+            "• Real hair strands - individual hairs visible, natural flow and texture\n"
+            "• Lifelike eyes - natural reflections, realistic iris detail, real depth\n"
+            "• Photographic lighting - natural shadows, realistic highlights\n"
+            "• The child should look like they could step out of the image\n\n"
+            "★★★ ABSOLUTE PROHIBITIONS (NEVER DO THESE): ★★★\n"
+            "✗ NEVER make the child look illustrated or cartoon-like\n"
+            "✗ NEVER make the child look painted or stylized\n"
+            "✗ NEVER add brush strokes or painterly effects to the child\n"
+            "✗ NEVER simplify or stylize the child's features\n"
+            "✗ NEVER make the child look 'drawn' in any way\n"
+            "✗ NEVER make the skin look painted or artificial\n"
+            "✗ NEVER make the hair look like solid blocks or painted strokes\n"
+            "✗ NEVER make the eyes look stylized or cartoon-like\n\n"
+            "★★★ WHAT REALISTIC MEANS: ★★★\n"
+            "• Skin looks like real human skin (natural texture, pores, subtle variations)\n"
+            "• Hair looks like real human hair (individual strands, natural shine)\n"
+            "• Eyes look like real human eyes (realistic iris, natural reflections)\n"
+            "• Face has realistic depth and dimension\n"
+            "• Lighting creates natural shadows and highlights\n"
+            "• The child looks like a real person photographed in the scene\n\n"
+            "=== BACKGROUND AND SCENE ===\n"
+            "• The BACKGROUND can be fantasy/illustrated/artistic - that's fine\n"
+            "• But the CHILD themselves must ALWAYS be fully realistic/photographic\n"
+            "• The child should look like a real person placed in the scene\n"
+            "• Match the lighting direction from the background onto the realistic child\n\n"
             "=== FACE QUALITY REQUIREMENTS (CRITICAL - HIGH QUALITY RENDERING) ===\n"
             "The face must be rendered with EXCEPTIONAL QUALITY and CLARITY:\n"
             "• Render the face with HIGH QUALITY and CLEAR DETAIL - avoid blurry, pixelated, or low-resolution faces\n"
